@@ -77,17 +77,22 @@ canvas {
     inset 0 0 0 1px rgb(245 189 85 / 5%);
 }
 
+.game-shell:fullscreen,
+.game-shell:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.game-shell::backdrop {
+  background: var(--black-deep);
+}
+
 .install-hint {
-  grid-row: 2;
-  width: min(390px, 100%);
-  margin: 0;
-  padding: 2px 8px;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 620;
-  line-height: 1.35;
-  text-align: center;
-  pointer-events: none;
+  display: none;
 }
 
 .install-hint[hidden] {
@@ -299,13 +304,14 @@ canvas {
 
 .status-message {
   position: absolute;
-  bottom: 70px;
+  top: var(--status-top, 112px);
   left: 50%;
   z-index: 3;
   width: max-content;
   max-width: calc(100% - 32px);
-  min-height: 32px;
-  padding: 7px 12px;
+  height: var(--status-height, 32px);
+  min-height: 0;
+  padding: 0 12px;
   overflow: hidden;
   transform: translateX(-50%);
   border: 1px solid rgb(255 255 255 / 10%);
@@ -316,6 +322,9 @@ canvas {
   font-size: clamp(0.66rem, 3vw, 0.78rem);
   font-weight: 680;
   line-height: 1.25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -329,11 +338,12 @@ canvas {
 
 .paddle-touch-zone {
   position: absolute;
+  top: var(--touch-deck-top, 707px);
   right: 0;
-  bottom: 64px;
+  bottom: 0;
   left: 0;
   z-index: 2;
-  height: 64px;
+  height: auto;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -351,13 +361,27 @@ canvas {
 
 .game-controls {
   position: absolute;
+  top: var(--controls-top, 60px);
   right: 12px;
-  bottom: 12px;
   left: 12px;
   z-index: 4;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.game-shell[data-compact-layout="true"] .game-header {
+  display: none;
+}
+
+.game-shell[data-compact-layout="true"] .status-message {
+  width: 1px;
+  max-width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .game-controls button {
@@ -372,7 +396,7 @@ canvas {
     0 7px 20px rgb(0 0 0 / 24%),
     inset 0 1px rgb(255 255 255 / 5%);
   font: inherit;
-  font-size: clamp(0.66rem, 2.8vw, 0.78rem);
+  font-size: clamp(0.58rem, 2.5vw, 0.74rem);
   font-weight: 720;
   line-height: 1;
   cursor: pointer;
@@ -449,7 +473,6 @@ noscript {
 
   .game-controls {
     right: 8px;
-    bottom: 8px;
     left: 8px;
     gap: 6px;
   }

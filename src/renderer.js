@@ -4,7 +4,7 @@ import {
   CELL_WALL,
   GAME_HEIGHT,
   GAME_WIDTH,
-} from './game-core.js';
+} from './game-core.js?v=1.1.1';
 
 const COLORS = {
   background: '#07080c',
@@ -122,7 +122,7 @@ export function getCellStylePlan(cell, row = 0, column = 0) {
     return {
       fill: COLORS.wall,
       highlight: COLORS.wallEdge,
-      radius: 1.5,
+      radius: 0,
     };
   }
   if (cell === CELL_BRICK) {
@@ -176,7 +176,7 @@ export function createRenderer(canvas, options = {}) {
   function drawCell(game, row, column, cell) {
     const grid = game.grid;
     const style = getCellStylePlan(cell, row, column);
-    const inset = cell === CELL_WALL ? Math.max(0.5, grid.brickInset) : grid.brickInset;
+    const inset = grid.brickInset;
     const x = grid.x + column * grid.cellWidth + inset;
     const y = grid.y + row * grid.cellHeight + inset;
     const width = grid.cellWidth - inset * 2;

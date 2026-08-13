@@ -1,7 +1,7 @@
-import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js';
-import { createAudioController } from './audio.js';
-import { bootstrapPwa } from './pwa.js';
-import { captureRenderState, createRenderer } from './renderer.js';
+import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.1.1';
+import { createAudioController } from './audio.js?v=1.1.1';
+import { bootstrapPwa } from './pwa.js?v=1.1.1';
+import { captureRenderState, createRenderer } from './renderer.js?v=1.1.1';
 
 export const PRODUCTION_GAME_OPTIONS = Object.freeze({
   seed: 0xc0ffee,
@@ -13,6 +13,11 @@ export const WAITING_STATUS_MESSAGE = '点按/拖动开始';
 const CANVAS_POINTER_STATUS_MESSAGE = '保持球在场内 · 绿色 ×3 会复利增殖';
 const KEYBOARD_PADDLE_SPEED = 330;
 const HUD_UPDATE_INTERVAL = 80;
+const CONTROLS_WORLD_TOP = 60;
+const CONTROLS_HEIGHT = 44;
+const STATUS_WORLD_TOP = 112;
+const STATUS_WORLD_HEIGHT = 32;
+const MIN_INTERFACE_GAP = 2;
 
 function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value));
@@ -198,6 +203,83 @@ export function setLevelPickerOpenState(levelPicker, backgroundElements, open) {
   }
 }
 
+export async function setGameFullscreen(documentRef, element, fullscreen) {
+  const activeElement =
+    documentRef?.fullscreenElement ?? documentRef?.webkitFullscreenElement ?? null;
+
+  if (fullscreen) {
+    if (activeElement) {
+      return true;
+    }
+    const request = element?.requestFullscreen ?? element?.webkitRequestFullscreen;
+    if (typeof request !== 'function') {
+      return null;
+    }
+    try {
+      await request.call(element);
+      return true;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!activeElement) {
+    return false;
+  }
+  const exit = documentRef?.exitFullscreen ?? documentRef?.webkitExitFullscreen;
+  if (typeof exit !== 'function') {
+    return null;
+  }
+  try {
+    await exit.call(documentRef);
+    return false;
+  } catch {
+    return null;
+  }
+}
+
+export function getInterfaceLayoutPlan(layout, game) {
+  const scale = Math.max(0, Number(layout?.scale) || 0);
+  const offsetY = Number(layout?.offsetY) || 0;
+  const requestedControlsTop = offsetY + CONTROLS_WORLD_TOP * scale;
+  const statusTop = offsetY + STATUS_WORLD_TOP * scale;
+  const statusHeight = Math.max(24, STATUS_WORLD_HEIGHT * scale);
+  const gridTop = offsetY + game.grid.y * scale;
+  const controlsTop = Math.max(
+    offsetY,
+    Math.min(
+      requestedControlsTop,
+      gridTop - CONTROLS_HEIGHT - MIN_INTERFACE_GAP,
+    ),
+  );
+  const touchDeckTop =
+    offsetY + (game.paddle.y + game.paddle.height / 2) * scale;
+  const compact =
+    statusTop < controlsTop + CONTROLS_HEIGHT + MIN_INTERFACE_GAP ||
+    statusTop + statusHeight + MIN_INTERFACE_GAP > gridTop;
+
+  return {
+    compact,
+    controlsTop,
+    controlsHeight: CONTROLS_HEIGHT,
+    statusTop,
+    statusHeight,
+    gridTop,
+    touchDeckTop,
+    minimumGap: MIN_INTERFACE_GAP,
+  };
+}
+
+function applyInterfaceLayout(gameShell, layout, game) {
+  const plan = getInterfaceLayoutPlan(layout, game);
+  gameShell.style.setProperty('--controls-top', `${plan.controlsTop}px`);
+  gameShell.style.setProperty('--status-top', `${plan.statusTop}px`);
+  gameShell.style.setProperty('--status-height', `${plan.statusHeight}px`);
+  gameShell.style.setProperty('--touch-deck-top', `${plan.touchDeckTop}px`);
+  gameShell.dataset.compactLayout = String(plan.compact);
+  return plan;
+}
+
 export function getCanvasPointerStatusMessage(session) {
   if (
     !session?.started ||
@@ -237,12 +319,14 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   const soundButton = documentRef.getElementById('sound-button');
   const restartButton = documentRef.getElementById('restart-button');
   const levelButton = documentRef.getElementById('level-button');
+  const fullscreenButton = documentRef.getElementById('fullscreen-button');
   const levelPicker = documentRef.getElementById('level-picker');
   const levelCards = levelPicker
     ? [...levelPicker.querySelectorAll('[data-level-id]')]
     : [];
   const gameHeader = documentRef.querySelector('.game-header');
   const gameControls = documentRef.querySelector('.game-controls');
+  const gameShell = documentRef.querySelector('.game-shell');
 
   if (
     !canvas ||
@@ -255,9 +339,11 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     !soundButton ||
     !restartButton ||
     !levelButton ||
+    !fullscreenButton ||
     !levelPicker ||
     !gameHeader ||
     !gameControls ||
+    !gameShell ||
     levelCards.length !== LEVELS.length
   ) {
     return null;
@@ -322,6 +408,11 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     pauseButton.setAttribute('aria-pressed', String(session.paused));
     soundButton.textContent = audio.enabled ? '声音 开' : '声音 关';
     soundButton.setAttribute('aria-pressed', String(audio.enabled));
+    const fullscreenActive = Boolean(
+      documentRef.fullscreenElement ?? documentRef.webkitFullscreenElement,
+    );
+    fullscreenButton.textContent = fullscreenActive ? '退出' : '全屏';
+    fullscreenButton.setAttribute('aria-pressed', String(fullscreenActive));
     for (const card of levelCards) {
       if (card.dataset.levelId === session.game.levelId) {
         card.setAttribute('aria-current', 'true');
@@ -394,6 +485,31 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
       (card) => card.dataset.levelId === session.game.levelId,
     );
     currentCard?.focus({ preventScroll: true });
+  }
+
+  function requestFullscreenForPlay() {
+    void setGameFullscreen(documentRef, gameShell, true).then(() => {
+      syncControls();
+      markResizePending();
+    });
+  }
+
+  async function toggleFullscreen() {
+    const fullscreenActive = Boolean(
+      documentRef.fullscreenElement ?? documentRef.webkitFullscreenElement,
+    );
+    const result = await setGameFullscreen(
+      documentRef,
+      gameShell,
+      !fullscreenActive,
+    );
+    syncControls();
+    markResizePending();
+    if (result === null) {
+      setStatus('iPhone：添加到主屏幕即可全屏');
+    } else {
+      setStatus(result ? '已进入全屏' : '已退出全屏');
+    }
   }
 
   function selectLevel(levelId) {
@@ -563,7 +679,8 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     lastTimestamp = timestamp;
 
     if (resizePending) {
-      renderer.resize();
+      const layout = renderer.resize();
+      applyInterfaceLayout(gameShell, layout, session.game);
       resizePending = false;
     }
 
@@ -639,9 +756,19 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   });
   listeners.listen(restartButton, 'click', restart);
   listeners.listen(levelButton, 'click', showLevelPicker);
+  listeners.listen(fullscreenButton, 'click', () => void toggleFullscreen());
   for (const card of levelCards) {
-    listeners.listen(card, 'click', () => selectLevel(card.dataset.levelId));
+    listeners.listen(card, 'click', () => {
+      requestFullscreenForPlay();
+      selectLevel(card.dataset.levelId);
+    });
   }
+  const onFullscreenChange = () => {
+    syncControls();
+    markResizePending();
+  };
+  listeners.listen(documentRef, 'fullscreenchange', onFullscreenChange);
+  listeners.listen(documentRef, 'webkitfullscreenchange', onFullscreenChange);
   listeners.listen(windowRef, 'keydown', onKeyDown);
   listeners.listen(windowRef, 'keyup', onKeyUp);
   listeners.listen(windowRef, 'blur', () => heldDirections.clear());
@@ -685,7 +812,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     });
   }
 
-  renderer.resize();
+  applyInterfaceLayout(gameShell, renderer.resize(), session.game);
   resizePending = false;
   renderer.reset(session.game);
   syncControls();

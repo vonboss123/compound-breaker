@@ -23,7 +23,7 @@ export const LEVELS = Object.freeze([
 const GRID_COLUMNS = 18;
 const GRID_ROWS = 22;
 const GRID_X = 15;
-const GRID_Y = 64;
+const GRID_Y = 150;
 const CELL_WIDTH = 20;
 const CELL_HEIGHT = 14;
 const BRICK_INSET = 1;
@@ -31,9 +31,9 @@ const DEFAULT_MAX_PHYSICAL_BALLS = 192;
 const LEVEL_TWO_GRID = Object.freeze({
   columns: 30,
   rows: 38,
-  x: 15,
-  y: 64,
-  cellWidth: 12,
+  x: 0,
+  y: GRID_Y,
+  cellWidth: GAME_WIDTH / 30,
   cellHeight: 10,
   brickInset: 0,
 });
@@ -255,14 +255,14 @@ export function createGame(options = {}) {
             ? grid.x + (launchCell.column + 0.5) * grid.cellWidth - 8
             : GAME_WIDTH / 2,
         y: 690,
-        vx: levelId === 'level-2' ? 24 : 90,
+        vx: levelId === 'level-2' ? 36 : 90,
         vy: -300,
         radius: 5,
         weight: 1,
       },
     ],
     tokens: [],
-    tokenFallSpeed: 110,
+    tokenFallSpeed: 120,
     events: [],
   };
 
