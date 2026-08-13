@@ -1,7 +1,7 @@
-import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.1.1';
-import { createAudioController } from './audio.js?v=1.1.1';
-import { bootstrapPwa } from './pwa.js?v=1.1.1';
-import { captureRenderState, createRenderer } from './renderer.js?v=1.1.1';
+import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.1.2';
+import { createAudioController } from './audio.js?v=1.1.2';
+import { bootstrapPwa } from './pwa.js?v=1.1.2';
+import { captureRenderState, createRenderer } from './renderer.js?v=1.1.2';
 
 export const PRODUCTION_GAME_OPTIONS = Object.freeze({
   seed: 0xc0ffee,

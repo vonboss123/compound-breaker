@@ -28,6 +28,7 @@ const CELL_WIDTH = 20;
 const CELL_HEIGHT = 14;
 const BRICK_INSET = 1;
 const DEFAULT_MAX_PHYSICAL_BALLS = 192;
+const COLLISION_EPSILON = 1e-7;
 const LEVEL_TWO_GRID = Object.freeze({
   columns: 30,
   rows: 38,
@@ -252,11 +253,11 @@ export function createGame(options = {}) {
       {
         x:
           levelId === 'level-2'
-            ? grid.x + (launchCell.column + 0.5) * grid.cellWidth - 8
+            ? grid.x + (launchCell.column + 0.5) * grid.cellWidth
             : GAME_WIDTH / 2,
         y: 690,
-        vx: levelId === 'level-2' ? 36 : 90,
-        vy: -300,
+        vx: levelId === 'level-2' ? -240 : 90,
+        vy: levelId === 'level-2' ? -180 : -300,
         radius: 5,
         weight: 1,
       },
@@ -344,39 +345,131 @@ function reflectFromBrick(ball, left, top, right, bottom, previousX, previousY) 
   }
 }
 
+function sweepCircleAgainstRectangle(
+  ball,
+  previousX,
+  previousY,
+  left,
+  top,
+  right,
+  bottom,
+) {
+  const travelX = ball.x - previousX;
+  const travelY = ball.y - previousY;
+  const expandedLeft = left - ball.radius;
+  const expandedTop = top - ball.radius;
+  const expandedRight = right + ball.radius;
+  const expandedBottom = bottom + ball.radius;
+
+  function axisTimes(start, travel, minimum, maximum) {
+    if (Math.abs(travel) <= COLLISION_EPSILON) {
+      return start < minimum || start > maximum
+        ? null
+        : { entry: Number.NEGATIVE_INFINITY, exit: Number.POSITIVE_INFINITY, normal: 0 };
+    }
+    if (travel > 0) {
+      return {
+        entry: (minimum - start) / travel,
+        exit: (maximum - start) / travel,
+        normal: -1,
+      };
+    }
+    return {
+      entry: (maximum - start) / travel,
+      exit: (minimum - start) / travel,
+      normal: 1,
+    };
+  }
+
+  const xTimes = axisTimes(previousX, travelX, expandedLeft, expandedRight);
+  const yTimes = axisTimes(previousY, travelY, expandedTop, expandedBottom);
+  if (!xTimes || !yTimes) {
+    return null;
+  }
+
+  const entryTime = Math.max(xTimes.entry, yTimes.entry);
+  const exitTime = Math.min(xTimes.exit, yTimes.exit);
+  if (
+    entryTime > exitTime + COLLISION_EPSILON ||
+    exitTime < -COLLISION_EPSILON ||
+    entryTime < -COLLISION_EPSILON ||
+    entryTime > 1 + COLLISION_EPSILON
+  ) {
+    return null;
+  }
+
+  let normalX = 0;
+  let normalY = 0;
+  if (xTimes.entry >= yTimes.entry - COLLISION_EPSILON) {
+    normalX = xTimes.normal;
+  }
+  if (yTimes.entry >= xTimes.entry - COLLISION_EPSILON) {
+    normalY = yTimes.normal;
+  }
+  if (
+    (normalX === 0 && normalY === 0) ||
+    travelX * normalX + travelY * normalY >= -COLLISION_EPSILON
+  ) {
+    return null;
+  }
+
+  return {
+    time: clamp(entryTime, 0, 1),
+    normalX,
+    normalY,
+  };
+}
+
+function getCellBounds(grid, row, column) {
+  const left = grid.x + column * grid.cellWidth + grid.brickInset;
+  const top = grid.y + row * grid.cellHeight + grid.brickInset;
+  return {
+    left,
+    top,
+    right: left + grid.cellWidth - 2 * grid.brickInset,
+    bottom: top + grid.cellHeight - 2 * grid.brickInset,
+  };
+}
+
 function hitNearbyBrick(game, ball, previousX, previousY) {
   const grid = game.grid;
   const radius = ball.radius;
+  const sweptLeft = Math.min(previousX, ball.x) - radius;
+  const sweptRight = Math.max(previousX, ball.x) + radius;
+  const sweptTop = Math.min(previousY, ball.y) - radius;
+  const sweptBottom = Math.max(previousY, ball.y) + radius;
   const minimumColumn = clamp(
-    Math.floor((ball.x - radius - grid.x) / grid.cellWidth),
+    Math.floor((sweptLeft - grid.x) / grid.cellWidth),
     0,
     grid.columns - 1,
   );
   const maximumColumn = clamp(
-    Math.floor((ball.x + radius - grid.x) / grid.cellWidth),
+    Math.floor((sweptRight - grid.x) / grid.cellWidth),
     0,
     grid.columns - 1,
   );
   const minimumRow = clamp(
-    Math.floor((ball.y - radius - grid.y) / grid.cellHeight),
+    Math.floor((sweptTop - grid.y) / grid.cellHeight),
     0,
     grid.rows - 1,
   );
   const maximumRow = clamp(
-    Math.floor((ball.y + radius - grid.y) / grid.cellHeight),
+    Math.floor((sweptBottom - grid.y) / grid.cellHeight),
     0,
     grid.rows - 1,
   );
 
   if (
-    ball.x + radius < grid.x ||
-    ball.x - radius > grid.x + grid.columns * grid.cellWidth ||
-    ball.y + radius < grid.y ||
-    ball.y - radius > grid.y + grid.rows * grid.cellHeight
+    sweptRight < grid.x ||
+    sweptLeft > grid.x + grid.columns * grid.cellWidth ||
+    sweptBottom < grid.y ||
+    sweptTop > grid.y + grid.rows * grid.cellHeight
   ) {
     return false;
   }
 
+  const contacts = [];
+  let earliestTime = Number.POSITIVE_INFINITY;
   for (let row = minimumRow; row <= maximumRow; row += 1) {
     for (let column = minimumColumn; column <= maximumColumn; column += 1) {
       const index = row * grid.columns + column;
@@ -385,10 +478,57 @@ function hitNearbyBrick(game, ball, previousX, previousY) {
         continue;
       }
 
-      const left = grid.x + column * grid.cellWidth + grid.brickInset;
-      const top = grid.y + row * grid.cellHeight + grid.brickInset;
-      const right = left + grid.cellWidth - 2 * grid.brickInset;
-      const bottom = top + grid.cellHeight - 2 * grid.brickInset;
+      const bounds = getCellBounds(grid, row, column);
+      const sweptHit = sweepCircleAgainstRectangle(
+        ball,
+        previousX,
+        previousY,
+        bounds.left,
+        bounds.top,
+        bounds.right,
+        bounds.bottom,
+      );
+      if (!sweptHit || sweptHit.time > earliestTime + COLLISION_EPSILON) {
+        continue;
+      }
+      const contact = { ...sweptHit, cell, row, column, bounds };
+      if (sweptHit.time < earliestTime - COLLISION_EPSILON) {
+        earliestTime = sweptHit.time;
+        contacts.length = 0;
+      }
+      contacts.push(contact);
+    }
+  }
+
+  if (contacts.length > 0) {
+    const permanentContacts = contacts.filter(({ cell }) => cell === CELL_WALL);
+    const activeContacts = permanentContacts.length > 0 ? permanentContacts : contacts;
+    const travelX = ball.x - previousX;
+    const travelY = ball.y - previousY;
+    let normalX = activeContacts.reduce((sum, contact) => sum + contact.normalX, 0);
+    let normalY = activeContacts.reduce((sum, contact) => sum + contact.normalY, 0);
+    normalX = Math.sign(normalX || activeContacts[0].normalX);
+    normalY = Math.sign(normalY || activeContacts[0].normalY);
+    ball.x = previousX + travelX * earliestTime + normalX * COLLISION_EPSILON;
+    ball.y = previousY + travelY * earliestTime + normalY * COLLISION_EPSILON;
+    if (normalX !== 0 && ball.vx * normalX < 0) {
+      ball.vx = -ball.vx;
+    }
+    if (normalY !== 0 && ball.vy * normalY < 0) {
+      ball.vy = -ball.vy;
+    }
+    if (permanentContacts.length === 0) {
+      awardBrick(game, activeContacts[0].row, activeContacts[0].column);
+    }
+    return true;
+  }
+
+  for (let row = minimumRow; row <= maximumRow; row += 1) {
+    for (let column = minimumColumn; column <= maximumColumn; column += 1) {
+      const index = row * grid.columns + column;
+      const cell = game.bricks[index];
+      if (cell === CELL_EMPTY) continue;
+      const { left, top, right, bottom } = getCellBounds(grid, row, column);
       const nearestX = clamp(ball.x, left, right);
       const nearestY = clamp(ball.y, top, bottom);
       const dx = ball.x - nearestX;
