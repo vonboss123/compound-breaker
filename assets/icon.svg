@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
+  <title>Compound Breaker 复利破阵</title>
+  <rect width="512" height="512" fill="#07080c"/>
+  <g id="safe-artwork">
+    <rect x="104" y="116" width="88" height="54" rx="13" fill="#f5bd55"/>
+    <rect x="212" y="116" width="88" height="54" rx="13" fill="#ffe2a0"/>
+    <rect x="320" y="116" width="88" height="54" rx="13" fill="#f5bd55"/>
+    <rect x="104" y="190" width="88" height="54" rx="13" fill="#ffe2a0"/>
+    <rect x="212" y="190" width="88" height="54" rx="13" fill="#f5bd55"/>
+    <rect x="320" y="190" width="88" height="54" rx="13" fill="#ffe2a0"/>
+    <circle cx="196" cy="318" r="19" fill="#fffdf6"/>
+    <circle cx="252" cy="296" r="14" fill="#fffdf6"/>
+    <circle cx="294" cy="332" r="11" fill="#fffdf6"/>
+    <rect x="116" y="382" width="280" height="42" rx="21" fill="#ff766f"/>
+    <circle cx="364" cy="310" r="52" fill="#b8ef68"/>
+    <path d="M337 283l20 20m0-20l-20 20" fill="none" stroke="#07080c" stroke-linecap="round" stroke-width="10"/>
+    <circle cx="342" cy="329" r="8" fill="#07080c"/>
+    <circle cx="364" cy="341" r="8" fill="#07080c"/>
+    <circle cx="386" cy="329" r="8" fill="#07080c"/>
+  </g>
+</svg>

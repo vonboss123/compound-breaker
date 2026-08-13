@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+    <meta name="description" content="一款原创的竖屏复利打砖块游戏。">
+    <meta name="theme-color" content="#07080c">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="复利破阵">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Compound Breaker</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="./assets/icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-shell" aria-labelledby="game-title">
+        <canvas
+          id="game-canvas"
+          width="390"
+          height="844"
+          role="application"
+          tabindex="0"
+          aria-label="Compound Breaker 游戏区域"
+          aria-describedby="game-instructions"
+        >
+          你的浏览器需要支持 Canvas 才能运行这个游戏。
+        </canvas>
+
+        <section
+          id="level-picker"
+          class="level-picker"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="level-picker-title"
+          aria-describedby="level-picker-description"
+        >
+          <div class="level-picker-panel">
+            <p class="level-picker-kicker">SELECT LEVEL</p>
+            <h2 id="level-picker-title">选择关卡</h2>
+            <p id="level-picker-description">两关均可直接开始</p>
+            <div class="level-list">
+              <button
+                class="level-card"
+                type="button"
+                data-level-id="level-1"
+                aria-describedby="level-1-description"
+              >
+                <span>第1关</span>
+                <strong>复利破阵</strong>
+                <small id="level-1-description">击穿密集砖阵</small>
+              </button>
+              <button
+                class="level-card level-card-featured"
+                type="button"
+                data-level-id="level-2"
+                aria-describedby="level-2-description"
+              >
+                <span>第2关</span>
+                <strong>长廊核心</strong>
+                <small id="level-2-description">穿过 L 形长廊进入核心</small>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <header class="game-header">
+          <div class="brand">
+            <p class="brand-kicker">COMPOUND</p>
+            <h1 id="game-title">Breaker</h1>
+          </div>
+
+          <dl class="hud" aria-label="本局状态">
+            <div>
+              <dt>得分</dt>
+              <dd><output id="score-output">0</output></dd>
+            </div>
+            <div>
+              <dt>时间</dt>
+              <dd><output id="time-output">00:00</output></dd>
+            </div>
+            <div>
+              <dt>球数</dt>
+              <dd><output id="balls-output">1</output></dd>
+            </div>
+          </dl>
+        </header>
+
+        <p id="game-instructions" class="visually-hidden">
+          在画布上左右拖动挡板，接住乘三道具并清空砖块。键盘方向键移动，空格暂停，R 键重开。
+        </p>
+        <p
+          id="status-message"
+          class="status-message"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          点按/拖动开始
+        </p>
+
+        <nav class="game-controls" aria-label="游戏控制">
+          <button
+            id="pause-button"
+            type="button"
+            aria-pressed="false"
+            aria-keyshortcuts="Space"
+          >
+            暂停
+          </button>
+          <button id="sound-button" type="button" aria-pressed="true">
+            声音 开
+          </button>
+          <button id="restart-button" type="button" aria-keyshortcuts="R">
+            重开
+          </button>
+          <button id="level-button" type="button">
+            选关
+          </button>
+        </nav>
+      </section>
+
+      <aside id="install-hint" class="install-hint" aria-label="安装到 iPhone" hidden>
+        iPhone Safari：点“分享”，再选“添加到主屏幕”。
+      </aside>
+      <p id="pwa-status" class="visually-hidden" role="status" aria-live="polite"></p>
+    </main>
+
+    <noscript>请开启 JavaScript 以运行 Compound Breaker。</noscript>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
