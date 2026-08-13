@@ -223,7 +223,7 @@ export function createGame(options = {}) {
   const multiplierEvery = positiveOption(options.multiplierEvery, 200);
   const paddle = {
     x: GAME_WIDTH / 2,
-    y: 760,
+    y: 700,
     width: 92,
     height: 14,
   };

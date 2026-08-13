@@ -251,6 +251,13 @@ canvas {
   letter-spacing: 0.2em;
 }
 
+.app-version {
+  margin-left: 0.35em;
+  color: var(--muted);
+  font-size: 0.82em;
+  letter-spacing: 0.08em;
+}
+
 .brand h1 {
   margin-top: 3px;
   color: var(--paper-white);
@@ -292,15 +299,15 @@ canvas {
 
 .status-message {
   position: absolute;
-  top: 47%;
+  bottom: 70px;
   left: 50%;
-  z-index: 2;
+  z-index: 3;
   width: max-content;
   max-width: calc(100% - 32px);
   min-height: 32px;
   padding: 7px 12px;
   overflow: hidden;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 999px;
   color: rgb(255 253 246 / 86%);
@@ -320,6 +327,18 @@ canvas {
     border-color 160ms ease;
 }
 
+.paddle-touch-zone {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  left: 0;
+  z-index: 2;
+  height: 64px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .status-message[data-tone="success"] {
   border-color: rgb(184 239 104 / 45%);
   color: var(--lime);
@@ -335,7 +354,7 @@ canvas {
   right: 12px;
   bottom: 12px;
   left: 12px;
-  z-index: 3;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;

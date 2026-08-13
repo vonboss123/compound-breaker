@@ -232,6 +232,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   const timeOutput = documentRef.getElementById('time-output');
   const ballsOutput = documentRef.getElementById('balls-output');
   const statusMessage = documentRef.getElementById('status-message');
+  const paddleTouchZone = documentRef.getElementById('paddle-touch-zone');
   const pauseButton = documentRef.getElementById('pause-button');
   const soundButton = documentRef.getElementById('sound-button');
   const restartButton = documentRef.getElementById('restart-button');
@@ -249,6 +250,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     !timeOutput ||
     !ballsOutput ||
     !statusMessage ||
+    !paddleTouchZone ||
     !pauseButton ||
     !soundButton ||
     !restartButton ||
@@ -278,6 +280,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   let previousState = captureRenderState(session.game);
   let paddleTarget = session.game.paddle.x;
   let activePointerId = null;
+  let activePointerSurface = null;
   let lastTimestamp = null;
   let lastHudUpdate = Number.NEGATIVE_INFINITY;
   let resizePending = true;
@@ -288,7 +291,13 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   let removeAudioPointerListener = () => {};
   let removeAudioKeyListener = () => {};
   const heldDirections = new Set();
-  const pickerBackground = [canvas, gameHeader, statusMessage, gameControls];
+  const pickerBackground = [
+    canvas,
+    paddleTouchZone,
+    gameHeader,
+    statusMessage,
+    gameControls,
+  ];
 
   function displayBallCount(count) {
     return count < 1_000_000 ? numberFormatter.format(count) : compactFormatter.format(count);
@@ -455,7 +464,8 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
       return;
     }
     activePointerId = event.pointerId;
-    canvas.setPointerCapture?.(event.pointerId);
+    activePointerSurface = event.currentTarget;
+    activePointerSurface.setPointerCapture?.(event.pointerId);
     beginSession();
     updatePaddleFromPointer(event);
     canvas.focus({ preventScroll: true });
@@ -478,10 +488,11 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     if (event.pointerId !== activePointerId) {
       return;
     }
-    if (canvas.hasPointerCapture?.(event.pointerId)) {
-      canvas.releasePointerCapture(event.pointerId);
+    if (activePointerSurface?.hasPointerCapture?.(event.pointerId)) {
+      activePointerSurface.releasePointerCapture(event.pointerId);
     }
     activePointerId = null;
+    activePointerSurface = null;
   }
 
   function onKeyDown(event) {
@@ -610,6 +621,10 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   listeners.listen(canvas, 'pointermove', onPointerMove);
   listeners.listen(canvas, 'pointerup', releasePointer);
   listeners.listen(canvas, 'pointercancel', releasePointer);
+  listeners.listen(paddleTouchZone, 'pointerdown', onPointerDown);
+  listeners.listen(paddleTouchZone, 'pointermove', onPointerMove);
+  listeners.listen(paddleTouchZone, 'pointerup', releasePointer);
+  listeners.listen(paddleTouchZone, 'pointercancel', releasePointer);
   listeners.listen(pauseButton, 'click', () => setPaused(!session.paused));
   listeners.listen(soundButton, 'click', () => {
     const enabled = audio.toggle();
@@ -696,10 +711,14 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
         windowRef.cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
-      if (activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
-        canvas.releasePointerCapture(activePointerId);
+      if (
+        activePointerId !== null &&
+        activePointerSurface?.hasPointerCapture?.(activePointerId)
+      ) {
+        activePointerSurface.releasePointerCapture(activePointerId);
       }
       activePointerId = null;
+      activePointerSurface = null;
       heldDirections.clear();
       resizeObserver?.disconnect();
       destroyPromise = audio.dispose();

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const SCOPE_URL = new URL(self.registration.scope);
 const SCOPE_ID = hashScope(SCOPE_URL.href);
 const CACHE_PREFIX = `compound-breaker-app-${SCOPE_ID}-`;

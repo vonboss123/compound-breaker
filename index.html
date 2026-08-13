@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
     <meta name="description" content="一款原创的竖屏复利打砖块游戏。">
+    <meta name="application-version" content="1.1.0">
     <meta name="theme-color" content="#07080c">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -72,7 +73,7 @@
 
         <header class="game-header">
           <div class="brand">
-            <p class="brand-kicker">COMPOUND</p>
+            <p class="brand-kicker">COMPOUND <span class="app-version">v1.1.0</span></p>
             <h1 id="game-title">Breaker</h1>
           </div>
 
@@ -93,8 +94,9 @@
         </header>
 
         <p id="game-instructions" class="visually-hidden">
-          在画布上左右拖动挡板，接住乘三道具并清空砖块。键盘方向键移动，空格暂停，R 键重开。
+          在横杆下方的触控区左右拖动挡板，接住乘三道具并清空砖块。键盘方向键移动，空格暂停，R 键重开。
         </p>
+        <div id="paddle-touch-zone" class="paddle-touch-zone" aria-hidden="true"></div>
         <p
           id="status-message"
           class="status-message"
