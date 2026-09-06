@@ -4,7 +4,7 @@ import {
   CELL_WALL,
   GAME_HEIGHT,
   GAME_WIDTH,
-} from './game-core.js?v=1.2.0';
+} from './game-core.js?v=1.2.1';
 
 const COLORS = {
   background: '#07080c',

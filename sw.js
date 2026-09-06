@@ -1,4 +1,4 @@
-const CACHE_VERSION = 7;
+const CACHE_VERSION = 8;
 const SCOPE_URL = new URL(self.registration.scope);
 const SCOPE_ID = hashScope(SCOPE_URL.href);
 const CACHE_PREFIX = `compound-breaker-app-${SCOPE_ID}-`;
@@ -7,12 +7,12 @@ const OFFLINE_URL = new URL('./index.html', SCOPE_URL).href;
 const APP_SHELL_PATHS = Object.freeze([
   './',
   './index.html',
-  './styles.css?v=1.2.0',
-  './src/game-core.js?v=1.2.0',
-  './src/main.js?v=1.2.0',
-  './src/pwa.js?v=1.2.0',
-  './src/renderer.js?v=1.2.0',
-  './src/audio.js?v=1.2.0',
+  './styles.css?v=1.2.1',
+  './src/game-core.js?v=1.2.1',
+  './src/main.js?v=1.2.1',
+  './src/pwa.js?v=1.2.1',
+  './src/renderer.js?v=1.2.1',
+  './src/audio.js?v=1.2.1',
   './manifest.webmanifest',
   './assets/icon.svg',
   './assets/apple-touch-icon.png',
