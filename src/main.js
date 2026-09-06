@@ -1,7 +1,7 @@
-import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.1.2';
-import { createAudioController } from './audio.js?v=1.1.2';
-import { bootstrapPwa } from './pwa.js?v=1.1.2';
-import { captureRenderState, createRenderer } from './renderer.js?v=1.1.2';
+import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.2.0';
+import { createAudioController } from './audio.js?v=1.2.0';
+import { bootstrapPwa } from './pwa.js?v=1.2.0';
+import { captureRenderState, createRenderer } from './renderer.js?v=1.2.0';
 
 export const PRODUCTION_GAME_OPTIONS = Object.freeze({
   seed: 0xc0ffee,
@@ -73,6 +73,11 @@ export function getLevelLabel(levelId) {
   const index = LEVELS.findIndex((level) => level.id === levelId);
   const safeIndex = index < 0 ? 0 : index;
   return `第${safeIndex + 1}关 · ${LEVELS[safeIndex].title}`;
+}
+
+export function getNextLevelId(levelId) {
+  const index = LEVELS.findIndex((level) => level.id === levelId);
+  return index < 0 ? null : LEVELS[index + 1]?.id ?? null;
 }
 
 export function startSession(session) {
@@ -406,6 +411,9 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     pauseButton.disabled = !gameCanPause;
     pauseButton.textContent = session.paused ? '继续' : '暂停';
     pauseButton.setAttribute('aria-pressed', String(session.paused));
+    levelButton.textContent = session.game.status === 'won' && getNextLevelId(session.game.levelId)
+      ? '下一关'
+      : '选关';
     soundButton.textContent = audio.enabled ? '声音 开' : '声音 关';
     soundButton.setAttribute('aria-pressed', String(audio.enabled));
     const fullscreenActive = Boolean(
@@ -755,7 +763,11 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     );
   });
   listeners.listen(restartButton, 'click', restart);
-  listeners.listen(levelButton, 'click', showLevelPicker);
+  listeners.listen(levelButton, 'click', () => {
+    const nextLevel = session.game.status === 'won' && getNextLevelId(session.game.levelId);
+    if (nextLevel) selectLevel(nextLevel);
+    else showLevelPicker();
+  });
   listeners.listen(fullscreenButton, 'click', () => void toggleFullscreen());
   for (const card of levelCards) {
     listeners.listen(card, 'click', () => {

@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
     <meta name="description" content="一款原创的竖屏复利打砖块游戏。">
-    <meta name="application-version" content="1.1.2">
+    <meta name="application-version" content="1.2.0">
     <meta name="theme-color" content="#07080c">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" sizes="any" href="./assets/icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="./styles.css?v=1.1.2">
+    <link rel="stylesheet" href="./styles.css?v=1.2.0">
   </head>
   <body>
     <main class="app-shell">
@@ -45,7 +45,7 @@
           <div class="level-picker-panel">
             <p class="level-picker-kicker">SELECT LEVEL</p>
             <h2 id="level-picker-title">选择关卡</h2>
-            <p id="level-picker-description">两关均可直接开始</p>
+            <p id="level-picker-description">五关自由选择 · 从宽门入阵到长廊挑战</p>
             <div class="level-list">
               <button
                 class="level-card"
@@ -53,19 +53,49 @@
                 data-level-id="level-1"
                 aria-describedby="level-1-description"
               >
-                <span>第1关</span>
+                <span>第1关 · 入门</span>
                 <strong>复利破阵</strong>
                 <small id="level-1-description">击穿密集砖阵</small>
               </button>
               <button
-                class="level-card level-card-featured"
+                class="level-card"
                 type="button"
                 data-level-id="level-2"
                 aria-describedby="level-2-description"
               >
-                <span>第2关</span>
+                <span>第2关 · 轻松</span>
+                <strong>宽门入阵</strong>
+                <small id="level-2-description">宽入口、短直道，练习进门</small>
+              </button>
+              <button
+                class="level-card"
+                type="button"
+                data-level-id="level-3"
+                aria-describedby="level-3-description"
+              >
+                <span>第3关 · 进阶</span>
+                <strong>折角回廊</strong>
+                <small id="level-3-description">沿宽阔折廊转弯进入核心</small>
+              </button>
+              <button
+                class="level-card"
+                type="button"
+                data-level-id="level-4"
+                aria-describedby="level-4-description"
+              >
+                <span>第4关 · 挑战</span>
+                <strong>深巷突围</strong>
+                <small id="level-4-description">入口收窄、通道加长</small>
+              </button>
+              <button
+                class="level-card level-card-featured"
+                type="button"
+                data-level-id="level-5"
+                aria-describedby="level-5-description"
+              >
+                <span>第5关 · 高手</span>
                 <strong>长廊核心</strong>
-                <small id="level-2-description">穿过 L 形长廊进入核心</small>
+                <small id="level-5-description">原第2关 · 最窄、最长的 L 形长廊</small>
               </button>
             </div>
           </div>
@@ -73,7 +103,7 @@
 
         <header class="game-header">
           <div class="brand">
-            <p class="brand-kicker">COMPOUND <span class="app-version">v1.1.2</span></p>
+            <p class="brand-kicker">COMPOUND <span class="app-version">v1.2.0</span></p>
             <h1 id="game-title">Breaker</h1>
           </div>
 
@@ -138,6 +168,6 @@
     </main>
 
     <noscript>请开启 JavaScript 以运行 Compound Breaker。</noscript>
-    <script type="module" src="./src/main.js?v=1.1.2"></script>
+    <script type="module" src="./src/main.js?v=1.2.0"></script>
   </body>
 </html>

@@ -4,7 +4,7 @@ import {
   CELL_WALL,
   GAME_HEIGHT,
   GAME_WIDTH,
-} from './game-core.js?v=1.1.2';
+} from './game-core.js?v=1.2.0';
 
 const COLORS = {
   background: '#07080c',
@@ -546,7 +546,8 @@ export function createRenderer(canvas, options = {}) {
     context.globalAlpha = 0.78;
     context.font = '600 13px ui-rounded, system-ui, sans-serif';
     context.fillText(
-      paused && !won && !lost ? '按空格或暂停按钮继续' : '点击重开，再来一局',
+      paused && !won && !lost ? '按空格或暂停按钮继续'
+        : won ? '使用上方按钮继续挑战或重开' : '点击重开，再来一局',
       GAME_WIDTH / 2,
       444,
     );

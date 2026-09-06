@@ -15,8 +15,23 @@ export const LEVELS = Object.freeze([
   }),
   Object.freeze({
     id: 'level-2',
+    title: '宽门入阵',
+    description: '宽入口、短直道，练习把球送入围墙。',
+  }),
+  Object.freeze({
+    id: 'level-3',
+    title: '折角回廊',
+    description: '沿宽阔折廊转弯，掌握墙面反弹。',
+  }),
+  Object.freeze({
+    id: 'level-4',
+    title: '深巷突围',
+    description: '入口收窄、通道加长，挑战精准回球。',
+  }),
+  Object.freeze({
+    id: 'level-5',
     title: '长廊核心',
-    description: '从唯一入口穿过 L 形长廊，再击碎墙后的核心。',
+    description: '原第2关：穿过最窄、最长的 L 形通道。',
   }),
 ]);
 
@@ -29,7 +44,7 @@ const CELL_HEIGHT = 14;
 const BRICK_INSET = 1;
 const DEFAULT_MAX_PHYSICAL_BALLS = 192;
 const COLLISION_EPSILON = 1e-7;
-const LEVEL_TWO_GRID = Object.freeze({
+const FORTRESS_GRID = Object.freeze({
   columns: 30,
   rows: 38,
   x: 0,
@@ -38,10 +53,13 @@ const LEVEL_TWO_GRID = Object.freeze({
   cellHeight: 10,
   brickInset: 0,
 });
-const LEVEL_TWO_ENTRANCE_START = 7;
-const LEVEL_TWO_ENTRANCE_WIDTH = 3;
-const LEVEL_TWO_TURN_ROW = 7;
-const LEVEL_TWO_CORRIDOR_END = 24;
+// Keep speed and paddle handling constant; introduce walls, then tighten the route.
+const FORTRESSES = Object.freeze({
+  'level-2': Object.freeze({ rows: 24, entranceStart: 9, corridorWidth: 12, turnRow: 20, firstBonus: 30, launchVx: -120, rowGap: 9 }),
+  'level-3': Object.freeze({ rows: 29, entranceStart: 8, corridorWidth: 7, turnRow: 12, corridorEnd: 21, firstBonus: 40, launchVx: -240, rowGap: 7, columnGap: 7 }),
+  'level-4': Object.freeze({ rows: 34, entranceStart: 7, corridorWidth: 5, turnRow: 10, corridorEnd: 23, firstBonus: 60, launchVx: -240, columnGap: 5 }),
+  'level-5': Object.freeze({ rows: 38, entranceStart: 7, corridorWidth: 3, turnRow: 7, corridorEnd: 24 }),
+});
 
 function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value));
@@ -107,82 +125,92 @@ function createLevelOneFortress(game) {
   return remaining;
 }
 
-function setLevelTwoCell(game, row, column, value) {
+function setFortressCell(game, row, column, value) {
   game.bricks[row * game.grid.columns + column] = value;
 }
 
-function createLevelTwoFortress(game) {
+function createFortress(game, route) {
   const { columns, rows } = game.grid;
-  const entranceEnd = LEVEL_TWO_ENTRANCE_START + LEVEL_TWO_ENTRANCE_WIDTH - 1;
+  const { entranceStart, corridorWidth, turnRow, corridorEnd } = route;
+  const entranceEnd = entranceStart + corridorWidth - 1;
   game.bricks.fill(CELL_BRICK);
 
   for (let column = 0; column < columns; column += 1) {
-    setLevelTwoCell(game, 0, column, CELL_WALL);
-    setLevelTwoCell(game, rows - 1, column, CELL_WALL);
+    setFortressCell(game, 0, column, CELL_WALL);
+    setFortressCell(game, rows - 1, column, CELL_WALL);
   }
   for (let row = 0; row < rows; row += 1) {
-    setLevelTwoCell(game, row, 0, CELL_WALL);
-    setLevelTwoCell(game, row, columns - 1, CELL_WALL);
+    setFortressCell(game, row, 0, CELL_WALL);
+    setFortressCell(game, row, columns - 1, CELL_WALL);
   }
 
-  // A three-cell shaft enters from below and turns right near the top.
-  for (let row = LEVEL_TWO_TURN_ROW; row < rows; row += 1) {
+  // Level 2 introduces a straight gate; later routes add a right-hand turn.
+  for (let row = turnRow; row < rows; row += 1) {
     for (
-      let column = LEVEL_TWO_ENTRANCE_START;
+      let column = entranceStart;
       column <= entranceEnd;
       column += 1
     ) {
-      setLevelTwoCell(game, row, column, CELL_EMPTY);
+      setFortressCell(game, row, column, CELL_EMPTY);
     }
   }
   for (
-    let row = LEVEL_TWO_TURN_ROW;
-    row < LEVEL_TWO_TURN_ROW + LEVEL_TWO_ENTRANCE_WIDTH;
+    let row = turnRow;
+    corridorEnd !== undefined && row < turnRow + corridorWidth;
     row += 1
   ) {
     for (
-      let column = LEVEL_TWO_ENTRANCE_START;
-      column <= LEVEL_TWO_CORRIDOR_END;
+      let column = entranceStart;
+      column <= corridorEnd;
       column += 1
     ) {
-      setLevelTwoCell(game, row, column, CELL_EMPTY);
+      setFortressCell(game, row, column, CELL_EMPTY);
     }
   }
 
   // Permanent walls make the corridor the only route to the breakable core.
-  for (let row = LEVEL_TWO_TURN_ROW; row < rows; row += 1) {
-    setLevelTwoCell(game, row, LEVEL_TWO_ENTRANCE_START - 1, CELL_WALL);
+  for (let row = turnRow; row < rows; row += 1) {
+    setFortressCell(game, row, entranceStart - 1, CELL_WALL);
   }
   for (
-    let row = LEVEL_TWO_TURN_ROW + LEVEL_TWO_ENTRANCE_WIDTH;
+    let row = corridorEnd === undefined ? turnRow : turnRow + corridorWidth;
     row < rows;
     row += 1
   ) {
-    setLevelTwoCell(game, row, entranceEnd + 1, CELL_WALL);
+    setFortressCell(game, row, entranceEnd + 1, CELL_WALL);
   }
   for (
-    let column = LEVEL_TWO_ENTRANCE_START - 1;
-    column <= LEVEL_TWO_CORRIDOR_END;
+    let column = entranceStart - 1;
+    corridorEnd !== undefined && column <= corridorEnd;
     column += 1
   ) {
-    setLevelTwoCell(game, LEVEL_TWO_TURN_ROW - 1, column, CELL_WALL);
+    setFortressCell(game, turnRow - 1, column, CELL_WALL);
   }
   for (
     let column = entranceEnd + 1;
-    column <= LEVEL_TWO_CORRIDOR_END;
+    corridorEnd !== undefined && column <= corridorEnd;
     column += 1
   ) {
-    setLevelTwoCell(
+    setFortressCell(
       game,
-      LEVEL_TWO_TURN_ROW + LEVEL_TWO_ENTRANCE_WIDTH,
+      turnRow + corridorWidth,
       column,
       CELL_WALL,
     );
   }
 
   let remaining = 0;
-  for (const cell of game.bricks) {
-    if (cell === CELL_BRICK) remaining += 1;
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const index = row * columns + column;
+      if (game.bricks[index] !== CELL_BRICK) continue;
+      // Air lanes let early fortresses build rallies before the dense final core.
+      if ((route.rowGap && row % route.rowGap < 2) || (route.columnGap && column % route.columnGap < 2)) {
+        game.bricks[index] = CELL_EMPTY;
+      } else {
+        remaining += 1;
+      }
+    }
   }
   return remaining;
 }
@@ -196,8 +224,9 @@ export function createGame(options = {}) {
   const levelId = LEVELS.some(({ id }) => id === requestedLevelId)
     ? requestedLevelId
     : 'level-1';
-  const grid = levelId === 'level-2'
-    ? { ...LEVEL_TWO_GRID }
+  const route = FORTRESSES[levelId];
+  const grid = route
+    ? { ...FORTRESS_GRID, rows: route.rows }
     : {
         columns: GRID_COLUMNS,
         rows: GRID_ROWS,
@@ -207,10 +236,10 @@ export function createGame(options = {}) {
         cellHeight: CELL_HEIGHT,
         brickInset: BRICK_INSET,
       };
-  const launchCell = levelId === 'level-2'
+  const launchCell = route
     ? {
         row: grid.rows - 1,
-        column: LEVEL_TWO_ENTRANCE_START + Math.floor(LEVEL_TWO_ENTRANCE_WIDTH / 2),
+        column: route.entranceStart + Math.floor(route.corridorWidth / 2),
       }
     : {
         row: GRID_ROWS - 1,
@@ -240,7 +269,7 @@ export function createGame(options = {}) {
     score: 0,
     brickScore: 10,
     multiplierEvery,
-    nextMultiplierScore: multiplierEvery,
+    nextMultiplierScore: Math.min(route?.firstBonus ?? multiplierEvery, multiplierEvery),
     ballRadius: 5,
     maxPhysicalBalls,
     visibleBallCount: 1,
@@ -252,12 +281,12 @@ export function createGame(options = {}) {
     balls: [
       {
         x:
-          levelId === 'level-2'
+          route
             ? grid.x + (launchCell.column + 0.5) * grid.cellWidth
             : GAME_WIDTH / 2,
         y: 690,
-        vx: levelId === 'level-2' ? -240 : 90,
-        vy: levelId === 'level-2' ? -180 : -300,
+        vx: route ? route.launchVx ?? -240 : 90,
+        vy: route ? -Math.sqrt(300 ** 2 - (route.launchVx ?? -240) ** 2) : -300,
         radius: 5,
         weight: 1,
       },
@@ -267,8 +296,8 @@ export function createGame(options = {}) {
     events: [],
   };
 
-  game.remainingBricks = levelId === 'level-2'
-    ? createLevelTwoFortress(game)
+  game.remainingBricks = route
+    ? createFortress(game, route)
     : createLevelOneFortress(game);
   return game;
 }
