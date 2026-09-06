@@ -38,6 +38,14 @@ export function tonePlanForEvent(event) {
         gain: 0.055,
         type: 'sine',
       }));
+    case 'pickup':
+      if (event.kind === 'multiplier') return null;
+      return [{ frequency: event.points < 0 ? 300 : 680, endFrequency: event.points < 0 ? 130 : 1080,
+        duration: 0.18, gain: 0.05, type: 'triangle' }];
+    case 'bomb':
+      return [{ frequency: 160, endFrequency: 45, duration: 0.32, gain: 0.06, type: 'sawtooth' }];
+    case 'wall-break':
+      return [{ frequency: 720, endFrequency: 180, duration: 0.09, gain: 0.035, type: 'triangle' }];
     case 'lost':
       return [
         {
@@ -155,12 +163,12 @@ export function createAudioController(options = {}) {
     const specialEvents = [];
     for (const event of events) {
       if (
-        (event.type === 'brick-hit' || event.type === 'paddle-hit') &&
+        (event.type === 'brick-hit' || event.type === 'paddle-hit' || event.type === 'wall-break') &&
         collisionEvents.length < MAX_COLLISION_SOUNDS_PER_FRAME
       ) {
         collisionEvents.push(event);
       } else if (
-        (event.type === 'multiply' || event.type === 'lost' || event.type === 'won') &&
+        (event.type === 'multiply' || event.type === 'lost' || event.type === 'won' || event.type === 'pickup' || event.type === 'bomb') &&
         specialEvents.length < MAX_SPECIAL_SOUNDS_PER_FRAME
       ) {
         specialEvents.push(event);

@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
     <meta name="description" content="一款原创的竖屏复利打砖块游戏。">
-    <meta name="application-version" content="1.2.1">
+    <meta name="application-version" content="1.3.0">
     <meta name="theme-color" content="#07080c">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" sizes="any" href="./assets/icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="./styles.css?v=1.2.1">
+    <link rel="stylesheet" href="./styles.css?v=1.3.0">
   </head>
   <body>
     <main class="app-shell">
@@ -43,9 +43,21 @@
           aria-describedby="level-picker-description"
         >
           <div class="level-picker-panel">
-            <p class="level-picker-kicker">SELECT LEVEL</p>
-            <h2 id="level-picker-title">选择关卡</h2>
-            <p id="level-picker-description">五关自由选择 · 从宽门入阵到长廊挑战</p>
+            <p class="level-picker-kicker">COMPOUND BREAKER · v1.3.0</p>
+            <h2 id="level-picker-title">复利破阵</h2>
+            <p id="level-picker-description">一颗球起步，一路破阵到底。</p>
+            <p id="cover-greeting" class="menu-note"></p>
+            <nav class="cover-tabs" aria-label="封面菜单">
+              <button type="button" data-cover-tab="play" aria-pressed="true">开始</button>
+              <button type="button" data-cover-tab="boards" aria-pressed="false">积分榜</button>
+              <button type="button" data-cover-tab="player" aria-pressed="false">改名字</button>
+            </nav>
+            <section id="cover-play">
+              <button id="resume-game" class="menu-button" type="button" hidden>继续本局</button>
+              <button id="campaign-start" class="menu-button primary-button" type="button">一命闯关 · 从第1关开始</button>
+              <p class="menu-note">连续通关累计总分；全部球落下，本次闯关结束。</p>
+              <details class="menu-details" id="level-select">
+                <summary>自由选关 · 练习单关</summary>
             <div class="level-list">
               <button
                 class="level-card"
@@ -98,12 +110,76 @@
                 <small id="level-5-description">原第2关 · 最窄、最长的 L 形长廊</small>
               </button>
             </div>
+              </details>
+              <details class="menu-details">
+                <summary>道具与计分</summary>
+                <ul class="powerup-guide">
+                  <li><b style="color:#b8ef68">×3</b> 三倍球 · 球数翻三倍</li>
+                  <li><b style="color:#ff964c">✹</b> 爆破弹 · 炸开一片砖块</li>
+                  <li><b style="color:#62d7ff">↔</b> 加长板 · 更好接球，12 秒</li>
+                  <li><b style="color:#c291ff">↦↤</b> 缩短板 · 小心接球，12 秒</li>
+                  <li><b style="color:#ffdf57">◆</b> 金刚球 · 可击破内墙，8 秒</li>
+                </ul>
+                <p class="menu-note">金刚球击破的墙会出现真实缺口；场地外边框永不破坏。炸弹不炸墙。效果按游戏时间计时，暂停不消耗。</p>
+                <p class="menu-note">每块砖 +10；好道具 +100，缩短板 −100。通关 +500，速度奖励为 1,800 − 用时秒数 ×10（最低 0）。单关总分最低 0；自由选关只计单关榜。</p>
+              </details>
+            </section>
+            <section id="cover-boards" hidden>
+              <label class="menu-label" for="leaderboard-select">共享积分榜 · TOP 10</label>
+              <select id="leaderboard-select" class="menu-select"></select>
+              <p id="cover-board-status" class="menu-note" role="status"></p>
+              <ol id="cover-ranking" class="ranking-list"></ol>
+              <p class="menu-note">每位玩家在当前浏览器只展示个人最高分。昵称与成绩公开；换手机或清除网站数据会视为新玩家。休闲榜单，不用于奖金比赛。</p>
+            </section>
+            <section id="cover-player" hidden>
+              <form id="player-form">
+                <label class="menu-label" for="player-name">你的游戏名字</label>
+                <input id="player-name" class="menu-input" name="nickname" autocomplete="nickname" maxlength="32" placeholder="给自己起个名字" required>
+                <p class="menu-note">最多 16 个字，保存在这台手机。下次直接玩，不需要 GitHub 账号。榜单会公开游戏名字，请勿填写真实姓名或联系方式。</p>
+                <button type="submit" class="menu-button primary-button">保存名字</button>
+                <p id="player-feedback" class="menu-note" role="status"></p>
+              </form>
+            </section>
+            <footer class="support-footer">
+              <a class="star-link" href="https://github.com/vonboss123/compound-breaker" target="_blank" rel="noopener noreferrer">☆ 喜欢游戏？去 GitHub 点个 Star</a>
+              <small>自愿支持 · 不影响游玩</small>
+            </footer>
+          </div>
+        </section>
+
+        <section id="settlement" class="level-picker" role="dialog" aria-modal="true" aria-labelledby="settlement-title" hidden>
+          <div class="level-picker-panel settlement-panel">
+            <p id="settlement-kicker" class="level-picker-kicker">STAGE CLEAR</p>
+            <h2 id="settlement-title">本关结算</h2>
+            <p id="settlement-subtitle" class="menu-note"></p>
+            <dl class="score-breakdown">
+              <div><dt>击砖得分</dt><dd id="score-bricks">0</dd></div>
+              <div><dt>好道具加分</dt><dd id="score-positive">+0</dd></div>
+              <div><dt>坏道具扣分</dt><dd id="score-negative">−0</dd></div>
+              <div><dt>通关奖励</dt><dd id="score-clear">+0</dd></div>
+              <div><dt>速度奖励 <small id="score-time"></small></dt><dd id="score-speed">+0</dd></div>
+            </dl>
+            <div class="stage-total"><span>本关总分</span><strong id="stage-total">0</strong></div>
+            <p id="run-total" class="run-total"></p>
+            <div class="settlement-actions">
+              <button id="settlement-next" class="menu-button primary-button" type="button">进入下一关</button>
+              <button id="settlement-replay" class="menu-button" type="button">再来一局</button>
+              <button id="settlement-cover" class="menu-button" type="button">回到封面</button>
+            </div>
+            <label class="menu-label" for="settlement-board">共享积分榜 · TOP 10</label>
+            <select id="settlement-board" class="menu-select"></select>
+            <p id="settlement-board-status" class="menu-note" role="status"></p>
+            <ol id="settlement-ranking" class="ranking-list"></ol>
+            <footer class="support-footer">
+              <a class="star-link" href="https://github.com/vonboss123/compound-breaker" target="_blank" rel="noopener noreferrer">☆ 在 GitHub 支持这个小游戏</a>
+              <small>不登录、不加星，也能完整游玩和上榜</small>
+            </footer>
           </div>
         </section>
 
         <header class="game-header">
           <div class="brand">
-            <p class="brand-kicker">COMPOUND <span class="app-version">v1.2.1</span></p>
+            <p class="brand-kicker">COMPOUND <span class="app-version">v1.3.0</span></p>
             <h1 id="game-title">Breaker</h1>
           </div>
 
@@ -124,7 +200,7 @@
         </header>
 
         <p id="game-instructions" class="visually-hidden">
-          在横杆下方的触控区左右拖动挡板，接住乘三道具并清空砖块。键盘方向键移动，空格暂停，R 键重开。
+          在横杆下方的触控区左右拖动挡板，接住彩色道具并清空砖块，小心紫色缩短板。键盘方向键移动，空格暂停，R 键重开。
         </p>
         <div id="paddle-touch-zone" class="paddle-touch-zone" aria-hidden="true"></div>
         <p
@@ -153,7 +229,7 @@
             重开
           </button>
           <button id="level-button" type="button">
-            选关
+            菜单
           </button>
           <button id="fullscreen-button" type="button" aria-pressed="false">
             全屏
@@ -168,6 +244,6 @@
     </main>
 
     <noscript>请开启 JavaScript 以运行 Compound Breaker。</noscript>
-    <script type="module" src="./src/main.js?v=1.2.1"></script>
+    <script type="module" src="./src/main.js?v=1.3.0"></script>
   </body>
 </html>

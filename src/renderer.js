@@ -4,7 +4,8 @@ import {
   CELL_WALL,
   GAME_HEIGHT,
   GAME_WIDTH,
-} from './game-core.js?v=1.2.1';
+  POWERUPS,
+} from './game-core.js?v=1.3.0';
 
 const COLORS = {
   background: '#07080c',
@@ -80,7 +81,11 @@ export function getEffectBudget(reducedMotion = false) {
       };
 }
 
-export function getPaddleStylePlan() {
+export function getPaddleStylePlan(effect = null) {
+  if (effect === 'wide' || effect === 'short') {
+    return { gradientStart: POWERUPS[effect].color, gradientEnd: POWERUPS[effect].color,
+      shadow: POWERUPS[effect].color };
+  }
   return PADDLE_STYLE;
 }
 
@@ -159,6 +164,7 @@ export function createRenderer(canvas, options = {}) {
   let brickLayerRatio = 1;
   let cachedGame = null;
   let particles = [];
+  let blasts = [];
   let trails = [];
   let trailFrame = 0;
   let hasSizedCanvas = false;
@@ -289,18 +295,24 @@ export function createRenderer(canvas, options = {}) {
 
     for (let index = 0; index < events.length; index += 1) {
       const event = events[index];
-      if (event.type === 'brick-hit') {
+      if (event.type === 'brick-hit' || event.type === 'wall-break') {
         clearBrickCell(game, event.row, event.column);
         if (impactEvents < 24) {
           spawnBurst(
             event.x,
             event.y,
-            colorForBrick(event.row, event.column),
+            event.type === 'wall-break' ? POWERUPS.hard.color : colorForBrick(event.row, event.column),
             effectBudget.impactParticles,
             event.row * 101 + event.column * 17 + game.stepCount,
           );
           impactEvents += 1;
         }
+      } else if (event.type === 'bomb') {
+        blasts.push({ x: event.x, y: event.y, radius: event.radius, life: 0.45 });
+        blasts = blasts.slice(-4);
+        spawnBurst(event.x, event.y, POWERUPS.bomb.color, 20, game.stepCount);
+      } else if (event.type === 'pickup' && event.kind !== 'multiplier') {
+        spawnBurst(game.paddle.x, game.paddle.y, POWERUPS[event.kind].color, 12, game.stepCount);
       } else if (event.type === 'paddle-hit' && impactEvents < 24) {
         spawnBurst(
           event.x,
@@ -402,6 +414,7 @@ export function createRenderer(canvas, options = {}) {
     if (paused) {
       return;
     }
+    blasts = blasts.filter(blast => { blast.life -= frameDelta; return blast.life > 0; });
 
     let writeIndex = 0;
     for (const trail of trails) {
@@ -464,8 +477,9 @@ export function createRenderer(canvas, options = {}) {
       return;
     }
 
-    context.fillStyle = COLORS.white;
-    context.shadowColor = 'rgba(255, 253, 246, 0.72)';
+    const hard = game.effects.hardUntil > game.time;
+    context.fillStyle = hard ? POWERUPS.hard.color : COLORS.white;
+    context.shadowColor = hard ? POWERUPS.hard.color : 'rgba(255, 253, 246, 0.72)';
     context.shadowBlur = reducedMotion ? 3 : 7;
     context.beginPath();
     for (let index = 0; index < game.balls.length; index += 1) {
@@ -485,7 +499,7 @@ export function createRenderer(canvas, options = {}) {
     const previousX = previousState?.paddleX ?? paddle.x;
     const x = interpolate(previousX, paddle.x, alpha) - paddle.width / 2;
     const y = paddle.y - paddle.height / 2;
-    const style = getPaddleStylePlan();
+    const style = getPaddleStylePlan(game.effects.paddleKind);
     const gradient = context.createLinearGradient(x, y, x, y + paddle.height);
     gradient.addColorStop(0, style.gradientStart);
     gradient.addColorStop(1, style.gradientEnd);
@@ -502,7 +516,8 @@ export function createRenderer(canvas, options = {}) {
     const tokenCount = Math.min(game.tokens.length, 64);
     for (let index = 0; index < tokenCount; index += 1) {
       const token = game.tokens[index];
-      context.fillStyle = COLORS.lime;
+      const pickup = POWERUPS[token.kind] ?? POWERUPS.multiplier;
+      context.fillStyle = pickup.color;
       context.beginPath();
       context.arc(token.x, token.y, token.radius + 3, 0, Math.PI * 2);
       context.fill();
@@ -510,11 +525,19 @@ export function createRenderer(canvas, options = {}) {
       context.font = '700 10px ui-rounded, system-ui, sans-serif';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      context.fillText('×3', token.x, token.y + 0.5);
+      context.fillText(pickup.symbol, token.x, token.y + 0.5);
     }
   }
 
   function drawParticles() {
+    for (const blast of blasts) {
+      context.globalAlpha = blast.life / 0.45;
+      context.strokeStyle = POWERUPS.bomb.color;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(blast.x, blast.y, blast.radius * (1.15 - blast.life), 0, Math.PI * 2);
+      context.stroke();
+    }
     for (const particle of particles) {
       context.globalAlpha = particle.life / particle.maxLife;
       context.fillStyle = particle.color;
@@ -594,6 +617,7 @@ export function createRenderer(canvas, options = {}) {
     reset(game) {
       cachedGame = null;
       particles = [];
+      blasts = [];
       trails = [];
       rebuildBrickLayer(game);
     },

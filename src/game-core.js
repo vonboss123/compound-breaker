@@ -7,6 +7,15 @@ export const CELL_EMPTY = 0;
 export const CELL_BRICK = 1;
 export const CELL_WALL = 2;
 
+export const POWERUPS = Object.freeze({
+  multiplier: Object.freeze({ name: '三倍球', symbol: '×3', color: '#b8ef68', points: 100 }),
+  bomb: Object.freeze({ name: '爆破弹', symbol: '✹', color: '#ff964c', points: 100 }),
+  wide: Object.freeze({ name: '加长板', symbol: '↔', color: '#62d7ff', points: 100 }),
+  short: Object.freeze({ name: '缩短板', symbol: '↦↤', color: '#c291ff', points: -100 }),
+  hard: Object.freeze({ name: '金刚球', symbol: '◆', color: '#ffdf57', points: 100 }),
+});
+const BONUS_SEQUENCE = ['wide', 'bomb', 'hard', 'short'];
+
 export const LEVELS = Object.freeze([
   Object.freeze({
     id: 'level-1',
@@ -267,6 +276,10 @@ export function createGame(options = {}) {
     stepCount: 0,
     time: 0,
     score: 0,
+    itemScore: 0,
+    pickups: Object.fromEntries(Object.keys(POWERUPS).map(kind => [kind, 0])),
+    effects: { paddleKind: null, paddleUntil: 0, hardUntil: 0 },
+    dropCount: 0,
     brickScore: 10,
     multiplierEvery,
     nextMultiplierScore: Math.min(route?.firstBonus ?? multiplierEvery, multiplierEvery),
@@ -309,18 +322,19 @@ export function movePaddle(game, x) {
 }
 
 function pushMultiplierToken(game, x, y) {
-  game.tokens.push({
-    kind: 'multiplier',
-    value: 3,
-    x,
-    y,
-    radius: 8,
-    vy: game.tokenFallSpeed,
-  });
+  const kinds = ['multiplier'];
+  if (game.dropCount % 2 === 1) kinds.push(BONUS_SEQUENCE[Math.floor(game.dropCount / 2) % BONUS_SEQUENCE.length]);
+  game.dropCount += 1;
+  for (const kind of kinds) {
+    if (game.tokens.length >= 24) break;
+    game.tokens.push({ kind, value: 3, x: kind === 'multiplier' ? x : clamp(x + 28, 12, GAME_WIDTH - 12),
+      y, radius: 8, vy: game.tokenFallSpeed });
+  }
 }
 
 function awardBrick(game, row, column) {
   const index = row * game.grid.columns + column;
+  if (game.bricks[index] !== CELL_BRICK || game.status !== 'playing') return;
   game.bricks[index] = CELL_EMPTY;
   game.remainingBricks -= 1;
   game.score += game.brickScore;
@@ -346,6 +360,68 @@ function awardBrick(game, row, column) {
     game.status = 'won';
     game.events.push({ type: 'won', score: game.score });
   }
+}
+
+function breakWall(game, row, column) {
+  const { grid } = game;
+  if (game.effects.hardUntil <= game.time || row === 0 || column === 0 ||
+      row === grid.rows - 1 || column === grid.columns - 1) return;
+  game.bricks[row * grid.columns + column] = CELL_EMPTY;
+  game.events.push({ type: 'wall-break', row, column,
+    x: grid.x + (column + 0.5) * grid.cellWidth,
+    y: grid.y + (row + 0.5) * grid.cellHeight });
+}
+
+function explodeBricks(game) {
+  const { grid } = game;
+  const focus = game.balls[0] ?? game.paddle;
+  let target = null;
+  let nearest = Infinity;
+  for (let index = 0; index < game.bricks.length; index += 1) {
+    if (game.bricks[index] !== CELL_BRICK) continue;
+    const x = grid.x + (index % grid.columns + 0.5) * grid.cellWidth;
+    const y = grid.y + (Math.floor(index / grid.columns) + 0.5) * grid.cellHeight;
+    const distance = (x - focus.x) ** 2 + (y - focus.y) ** 2;
+    if (distance < nearest) { nearest = distance; target = { x, y }; }
+  }
+  if (!target) return;
+  const radius = 54;
+  game.events.push({ type: 'bomb', ...target, radius });
+  for (let row = 0; row < grid.rows; row += 1) {
+    for (let column = 0; column < grid.columns; column += 1) {
+      const x = grid.x + (column + 0.5) * grid.cellWidth;
+      const y = grid.y + (row + 0.5) * grid.cellHeight;
+      if ((x - target.x) ** 2 + (y - target.y) ** 2 <= radius ** 2) awardBrick(game, row, column);
+    }
+  }
+}
+
+export function activatePowerup(game, kind) {
+  const pickup = POWERUPS[kind];
+  if (!pickup || game.status !== 'playing') return false;
+  game.pickups[kind] += 1;
+  game.itemScore += pickup.points;
+  game.events.push({ type: 'pickup', kind, points: pickup.points });
+  if (kind === 'multiplier') activateMultiplier(game);
+  else if (kind === 'bomb') explodeBricks(game);
+  else if (kind === 'hard') game.effects.hardUntil = game.time + 8;
+  else {
+    game.effects.paddleKind = kind;
+    game.effects.paddleUntil = game.time + 12;
+    game.paddle.width = kind === 'wide' ? 138 : 60;
+    movePaddle(game, game.paddle.x);
+  }
+  return true;
+}
+
+function expirePowerups(game) {
+  if (game.effects.paddleKind && game.effects.paddleUntil <= game.time) {
+    game.effects.paddleKind = null;
+    game.effects.paddleUntil = 0;
+    game.paddle.width = 92;
+    movePaddle(game, game.paddle.x);
+  }
+  if (game.effects.hardUntil <= game.time) game.effects.hardUntil = 0;
 }
 
 function reflectFromBrick(ball, left, top, right, bottom, previousX, previousY) {
@@ -548,6 +624,8 @@ function hitNearbyBrick(game, ball, previousX, previousY) {
     }
     if (permanentContacts.length === 0) {
       awardBrick(game, activeContacts[0].row, activeContacts[0].column);
+    } else {
+      for (const contact of permanentContacts) breakWall(game, contact.row, contact.column);
     }
     return true;
   }
@@ -570,6 +648,8 @@ function hitNearbyBrick(game, ball, previousX, previousY) {
       reflectFromBrick(ball, left, top, right, bottom, previousX, previousY);
       if (cell === CELL_BRICK) {
         awardBrick(game, row, column);
+      } else if (cell === CELL_WALL) {
+        breakWall(game, row, column);
       }
       return true;
     }
@@ -645,10 +725,10 @@ function reflectFromPaddle(game, ball, previousX, previousY) {
 
 function updateTokens(game) {
   const paddle = game.paddle;
-  const halfWidth = paddle.width / 2;
   const halfHeight = paddle.height / 2;
 
-  for (let index = game.tokens.length - 1; index >= 0; index -= 1) {
+  for (let index = game.tokens.length - 1; index >= 0 && game.status === 'playing'; index -= 1) {
+    const halfWidth = paddle.width / 2;
     const token = game.tokens[index];
     token.y += token.vy * FIXED_STEP;
     const touchesPaddle =
@@ -659,7 +739,7 @@ function updateTokens(game) {
 
     if (touchesPaddle) {
       game.tokens.splice(index, 1);
-      activateMultiplier(game);
+      activatePowerup(game, token.kind);
     } else if (token.y - token.radius > GAME_HEIGHT) {
       game.tokens.splice(index, 1);
     }
@@ -755,6 +835,7 @@ export function stepGame(game, input) {
 
   game.stepCount += 1;
   game.time = game.stepCount * FIXED_STEP;
+  expirePowerups(game);
   updateTokens(game);
   updateBalls(game);
   return game;

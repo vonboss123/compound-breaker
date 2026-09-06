@@ -1,7 +1,12 @@
-import { FIXED_STEP, LEVELS, createGame, movePaddle, stepGame } from './game-core.js?v=1.2.1';
-import { createAudioController } from './audio.js?v=1.2.1';
-import { bootstrapPwa } from './pwa.js?v=1.2.1';
-import { captureRenderState, createRenderer } from './renderer.js?v=1.2.1';
+import { FIXED_STEP, LEVELS, POWERUPS, createGame, movePaddle, stepGame } from './game-core.js?v=1.3.0';
+import { createAudioController } from './audio.js?v=1.3.0';
+import { bootstrapPwa } from './pwa.js?v=1.3.0';
+import { captureRenderState, createRenderer } from './renderer.js?v=1.3.0';
+import { createRun, settleStage, advanceRun, resultPayload } from './progression.js?v=1.3.0';
+import { createPlayerStore } from './player-store.js?v=1.3.0';
+import { createLeaderboardClient } from './leaderboard-client.js?v=1.3.0';
+import { createArcadeUI } from './arcade-ui.js?v=1.3.0';
+import { LEADERBOARD_API } from './config.js?v=1.3.0';
 
 export const PRODUCTION_GAME_OPTIONS = Object.freeze({
   seed: 0xc0ffee,
@@ -367,6 +372,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   });
 
   let session = createSession(PRODUCTION_GAME_OPTIONS);
+  let run = null;
   let clock = { accumulator: 0, steps: 0, alpha: 1, droppedTime: 0 };
   let previousState = captureRenderState(session.game);
   let paddleTarget = session.game.paddle.x;
@@ -382,13 +388,20 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   let removeAudioPointerListener = () => {};
   let removeAudioKeyListener = () => {};
   const heldDirections = new Set();
-  const pickerBackground = [
-    canvas,
-    paddleTouchZone,
-    gameHeader,
-    statusMessage,
-    gameControls,
-  ];
+  let storage = null;
+  try { storage = windowRef.localStorage; } catch { /* Private browsing still allows play. */ }
+  const playerStore = createPlayerStore(storage);
+  const leaderboard = createLeaderboardClient({ store: playerStore, baseUrl: LEADERBOARD_API,
+    fetchFn: windowRef.fetch?.bind(windowRef) });
+  const arcadeUI = createArcadeUI({ documentRef, windowRef, store: playerStore, leaderboard,
+    onStart: startRun, onNext: nextStage, onReplay: restart, onResume: resumeFromCover,
+    onOpen() {
+      heldDirections.clear();
+      if (activePointerId !== null) releasePointer({ pointerId: activePointerId });
+      setPaused(true, '菜单已打开');
+      clearClock();
+    },
+  });
 
   function displayBallCount(count) {
     return count < 1_000_000 ? numberFormatter.format(count) : compactFormatter.format(count);
@@ -411,9 +424,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     pauseButton.disabled = !gameCanPause;
     pauseButton.textContent = session.paused ? '继续' : '暂停';
     pauseButton.setAttribute('aria-pressed', String(session.paused));
-    levelButton.textContent = session.game.status === 'won' && getNextLevelId(session.game.levelId)
-      ? '下一关'
-      : '选关';
+    levelButton.textContent = '菜单';
     soundButton.textContent = audio.enabled ? '声音 开' : '声音 关';
     soundButton.setAttribute('aria-pressed', String(audio.enabled));
     const fullscreenActive = Boolean(
@@ -437,7 +448,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     lastHudUpdate = timestamp;
 
     const exactBallCount = numberFormatter.format(session.game.visibleBallCount);
-    scoreOutput.textContent = numberFormatter.format(session.game.score);
+    scoreOutput.textContent = numberFormatter.format(Math.max(0, session.game.score + session.game.itemScore));
     timeOutput.textContent = formatElapsed(session.game.time);
     ballsOutput.textContent = displayBallCount(session.game.visibleBallCount);
     ballsOutput.title = `${exactBallCount} 个球`;
@@ -472,27 +483,32 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   }
 
   function restart() {
-    session = restartSession(session);
-    paddleTarget = session.game.paddle.x;
-    activePointerId = null;
-    heldDirections.clear();
-    clearClock();
-    renderer.reset(session.game);
-    setStatus(WAITING_STATUS_MESSAGE);
-    syncControls();
-    updateHud(windowRef.performance.now(), true);
-    requestFrame();
+    startRun(run?.mode ?? 'practice', session.game.levelId);
   }
 
   function showLevelPicker() {
-    if (session.started && !session.paused && session.game.status === 'playing') {
-      setPaused(true, '选择关卡');
-    }
-    setLevelPickerOpenState(levelPicker, pickerBackground, true);
-    const currentCard = levelCards.find(
-      (card) => card.dataset.levelId === session.game.levelId,
-    );
-    currentCard?.focus({ preventScroll: true });
+    arcadeUI.showCover({ canResume: Boolean(run && !run.finished) });
+  }
+
+  function resumeFromCover() {
+    if (!run || run.finished) return;
+    if (session.game.status === 'won') { nextStage(); return; }
+    arcadeUI.close();
+    setPaused(false);
+    canvas.focus({ preventScroll: true });
+    requestFrame();
+  }
+
+  function startRun(mode, levelId) {
+    if (!playerStore.profile.name) { showLevelPicker(); return; }
+    run = createRun(playerStore.profile, { mode, levelId });
+    loadStage(run.currentLevelId);
+    requestFullscreenForPlay();
+  }
+
+  function nextStage() {
+    const next = advanceRun(run);
+    if (next) loadStage(next);
   }
 
   function requestFullscreenForPlay() {
@@ -521,13 +537,19 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   }
 
   function selectLevel(levelId) {
-    session = selectSessionLevel(session, levelId);
+    startRun('practice', levelId);
+  }
+
+  function loadStage(levelId) {
+    if (activePointerId !== null) releasePointer({ pointerId: activePointerId });
+    session = createSession({ ...PRODUCTION_GAME_OPTIONS, levelId });
     paddleTarget = session.game.paddle.x;
     activePointerId = null;
     heldDirections.clear();
     clearClock();
     renderer.reset(session.game);
-    setLevelPickerOpenState(levelPicker, pickerBackground, false);
+    arcadeUI.close();
+    resizePending = true;
     setStatus(WAITING_STATUS_MESSAGE);
     syncControls();
     updateHud(windowRef.performance.now(), true);
@@ -536,7 +558,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   }
 
   function beginSession() {
-    if (!startSession(session)) {
+    if (arcadeUI.open || !run || !startSession(session)) {
       return false;
     }
     clearClock();
@@ -550,6 +572,9 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     for (const event of events) {
       if (event.type === 'multiply') {
         setStatus(`×3！现在有 ${displayBallCount(event.visibleBallCount)} 个球`, 'success');
+      } else if (event.type === 'pickup' && event.kind !== 'multiplier') {
+        const item = POWERUPS[event.kind];
+        setStatus(`${item.symbol} ${item.name} ${item.points > 0 ? '+' : ''}${item.points} 分`, item.points > 0 ? 'success' : 'danger');
       } else if (event.type === 'won') {
         setStatus(`清场成功 · 得分 ${numberFormatter.format(event.score)}`, 'success');
       } else if (event.type === 'lost') {
@@ -559,6 +584,15 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     if (session.game.status !== 'playing') {
       syncControls();
     }
+  }
+
+  function settleFinishedGame() {
+    if (!run || session.game.status === 'playing' || run.stages.some(stage => stage.levelId === session.game.levelId)) return;
+    const result = settleStage(run, session.game);
+    if (!result) return;
+    playerStore.enqueue(resultPayload(run));
+    arcadeUI.showSettlement(run, result);
+    syncControls();
   }
 
   function unlockAudioFromGesture() {
@@ -572,7 +606,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   }
 
   function updatePaddleFromPointer(event) {
-    if (session.paused || session.game.status !== 'playing') {
+    if (arcadeUI.open || session.paused || session.game.status !== 'playing') {
       return;
     }
     const worldPoint = renderer.clientToWorld(event.clientX, event.clientY);
@@ -581,6 +615,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
 
   function onPointerDown(event) {
     if (
+      arcadeUI.open ||
       activePointerId !== null ||
       event.isPrimary === false ||
       (event.pointerType === 'mouse' && event.button !== 0)
@@ -620,9 +655,10 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
   }
 
   function onKeyDown(event) {
+    if (shouldIgnoreGameKey(event.target, event.key, event.code)) return;
     if (
       shouldBlockGameKeyForLevelPicker(
-        !levelPicker.hidden,
+        arcadeUI.open,
         event.key,
         event.code,
       )
@@ -693,7 +729,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     }
 
     const frameEvents = [];
-    if (!session.paused && session.game.status === 'playing') {
+    if (!arcadeUI.open && !session.paused && session.game.status === 'playing') {
       const direction =
         Number(heldDirections.has('ArrowRight')) - Number(heldDirections.has('ArrowLeft'));
       if (direction !== 0) {
@@ -729,6 +765,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
       audio.playEvents(frameEvents);
       respondToCoreEvents(frameEvents);
     }
+    settleFinishedGame();
 
     renderer.render(session.game, {
       alpha: clock.alpha,
@@ -737,7 +774,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
       frameDelta: Math.min(frameDelta, 0.05),
     });
     updateHud(timestamp, frameEvents.length > 0);
-    if (shouldContinueAnimation(session, renderer.effectCounts)) {
+    if (!arcadeUI.open && shouldContinueAnimation(session, renderer.effectCounts)) {
       requestFrame();
     }
   }
@@ -763,18 +800,9 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     );
   });
   listeners.listen(restartButton, 'click', restart);
-  listeners.listen(levelButton, 'click', () => {
-    const nextLevel = session.game.status === 'won' && getNextLevelId(session.game.levelId);
-    if (nextLevel) selectLevel(nextLevel);
-    else showLevelPicker();
-  });
+  listeners.listen(levelButton, 'click', showLevelPicker);
   listeners.listen(fullscreenButton, 'click', () => void toggleFullscreen());
-  for (const card of levelCards) {
-    listeners.listen(card, 'click', () => {
-      requestFullscreenForPlay();
-      selectLevel(card.dataset.levelId);
-    });
-  }
+  listeners.listen(windowRef, 'online', () => void leaderboard.flush());
   const onFullscreenChange = () => {
     syncControls();
     markResizePending();
@@ -837,6 +865,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
     get session() {
       return session;
     },
+    get run() { return run; },
     restart,
     selectLevel,
     showLevelPicker,
@@ -846,6 +875,7 @@ export function bootstrapGame(documentRef = globalThis.document, windowRef = glo
       }
       destroyed = true;
       listeners.dispose();
+      arcadeUI.destroy();
       if (animationFrameId !== null) {
         windowRef.cancelAnimationFrame(animationFrameId);
         animationFrameId = null;

@@ -121,7 +121,7 @@ canvas {
   inset: 0;
   z-index: 5;
   display: grid;
-  padding: 22px;
+  padding: 12px;
   place-items: center;
   background:
     radial-gradient(circle at 50% 33%, rgb(245 189 85 / 17%), transparent 38%),
@@ -135,7 +135,7 @@ canvas {
 }
 
 .level-picker-panel {
-  width: min(330px, 100%);
+  width: min(370px, 100%);
   min-height: 0;
   max-height: 100%;
   overflow-y: auto;
@@ -147,6 +147,80 @@ canvas {
   background: rgb(12 13 19 / 96%);
   box-shadow: 0 24px 70px rgb(0 0 0 / 56%);
 }
+
+[hidden] { display: none !important; }
+
+.cover-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 18px 0 16px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #08090e;
+}
+
+.cover-tabs button, .menu-button {
+  min-height: 44px;
+  padding: 10px 8px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 11px;
+  background: #191a21;
+  color: var(--paper-white);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cover-tabs button { border-color: transparent; background: transparent; }
+.cover-tabs button[aria-pressed="true"] { color: var(--warm-gold-bright); background: #322a1d; }
+.menu-button { display: block; width: 100%; margin: 9px 0; }
+.primary-button { border-color: #f5bd55; color: #211707; background: linear-gradient(125deg, #ffe2a0, #efb442); }
+.menu-note, .level-picker-panel > .menu-note { margin: 10px 0; color: var(--muted); font-size: 0.72rem; line-height: 1.6; overflow-wrap: anywhere; }
+.menu-label { display: block; margin: 14px 0 8px; font-size: 0.8rem; font-weight: 700; }
+.menu-input, .menu-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px;
+  border: 1px solid #494236;
+  border-radius: 10px;
+  background: #08090f;
+  color: var(--paper-white);
+  font: inherit;
+  font-size: 16px;
+}
+.menu-details { margin-top: 16px; border-top: 1px solid #2a2b31; }
+.menu-details summary { min-height: 44px; padding-top: 15px; font-size: 0.78rem; cursor: pointer; }
+.powerup-guide { padding: 0; list-style: none; font-size: 0.74rem; line-height: 1.9; }
+.powerup-guide b { display: inline-block; width: 28px; font-size: 1rem; text-align: center; }
+.support-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid #292a31; text-align: center; }
+.star-link { display: inline-flex; min-height: 44px; align-items: center; color: #c6b68f; font-size: 0.72rem; text-decoration: none; }
+.support-footer small { display: block; color: #a09b91; font-size: 0.63rem; line-height: 1.5; }
+.level-picker :is(button, a, input, select, summary):focus-visible { outline: 2px solid var(--warm-gold); outline-offset: 2px; }
+.score-breakdown { margin: 17px 0 12px; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.score-breakdown div { display: flex; justify-content: space-between; gap: 8px; margin: 9px 0; }
+.score-breakdown dt { color: #b8b5ae; }
+.score-breakdown dd { margin: 0; font-weight: 750; }
+.score-breakdown small { font-size: 0.65rem; }
+#score-positive { color: var(--lime); }
+#score-negative { color: #c291ff; }
+.stage-total { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0; border-top: 1px solid #454031; font-size: 0.85rem; }
+.stage-total strong { color: var(--warm-gold-bright); font-size: 2rem; font-variant-numeric: tabular-nums; }
+.run-total { margin: 0 0 14px; color: var(--warm-gold); font-size: 0.75rem; line-height: 1.6; }
+.settlement-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.settlement-actions .menu-button { margin: 0; }
+#settlement-next { grid-column: 1 / -1; }
+.ranking-list { margin: 8px 0; padding: 0; list-style: none; }
+.ranking-list li { display: grid; grid-template-columns: 23px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #24252c; font-variant-numeric: tabular-nums; }
+.ranking-list b { color: #817c71; font-size: 0.78rem; }
+.ranking-list li:nth-child(-n+3) b { color: var(--warm-gold); }
+.ranking-list strong { display: block; overflow: hidden; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
+.ranking-list small { display: block; margin-top: 3px; color: var(--muted); font-size: 0.64rem; }
+.ranking-list em { font-size: 0.83rem; font-style: normal; font-weight: 750; }
+.ranking-list .ranking-empty { display: block; padding: 20px 0; color: var(--muted); font-size: 0.75rem; text-align: center; }
 
 .level-picker-kicker,
 .level-picker h2,
