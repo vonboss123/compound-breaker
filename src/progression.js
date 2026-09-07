@@ -1,4 +1,4 @@
-import { LEVELS, POWERUPS } from './game-core.js?v=1.3.0';
+import { LEVELS, POWERUPS } from './game-core.js?v=1.3.1';
 
 export function calculateStageScore({ brickPoints = 0, seconds = 0, won = false, pickups = {} }) {
   brickPoints = Math.max(0, Math.trunc(Number(brickPoints) || 0));
@@ -49,7 +49,7 @@ export function advanceRun(run) {
 }
 
 export function resultPayload(run) {
-  return { rules: 1, runId: run.id, playerId: run.playerId, nickname: run.nickname, mode: run.mode,
+  return { rules: 2, runId: run.id, playerId: run.playerId, nickname: run.nickname, mode: run.mode,
     stages: run.stages.map(({ levelId, won, brickPoints, seconds, pickups }) =>
       ({ levelId, won, brickPoints, seconds, pickups: { ...pickups } })) };
 }

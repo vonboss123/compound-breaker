@@ -5,7 +5,7 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   POWERUPS,
-} from './game-core.js?v=1.3.0';
+} from './game-core.js?v=1.3.1';
 
 const COLORS = {
   background: '#07080c',

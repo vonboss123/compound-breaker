@@ -1,7 +1,7 @@
 export const GAME_WIDTH = 390;
 export const GAME_HEIGHT = 844;
 export const FIXED_STEP = 1 / 120;
-export const MAX_VISIBLE_BALLS = Number.MAX_SAFE_INTEGER;
+export const MAX_VISIBLE_BALLS = 12;
 export const MIN_HORIZONTAL_SPEED_RATIO = 0.12;
 export const CELL_EMPTY = 0;
 export const CELL_BRICK = 1;
@@ -14,13 +14,15 @@ export const POWERUPS = Object.freeze({
   short: Object.freeze({ name: '缩短板', symbol: '↦↤', color: '#c291ff', points: -100 }),
   hard: Object.freeze({ name: '金刚球', symbol: '◆', color: '#ffdf57', points: 100 }),
 });
-const BONUS_SEQUENCE = ['wide', 'bomb', 'hard', 'short'];
+export const POWERUP_RULES = Object.freeze({ firstAt: 2, interval: 7, starters: 4, brickPoints: 60 });
+const BONUS_SEQUENCE = ['wide', 'multiplier', 'hard', 'bomb', 'wide', 'short',
+  'hard', 'multiplier', 'bomb', 'wide', 'hard', 'bomb'];
 
 export const LEVELS = Object.freeze([
   Object.freeze({
     id: 'level-1',
     title: '复利破阵',
-    description: '击穿密集砖阵，让每一次 ×3 滚成雪球。',
+    description: '接住彩色道具，体验增球、爆破与金刚球。',
   }),
   Object.freeze({
     id: 'level-2',
@@ -51,7 +53,7 @@ const GRID_Y = 150;
 const CELL_WIDTH = 20;
 const CELL_HEIGHT = 14;
 const BRICK_INSET = 1;
-const DEFAULT_MAX_PHYSICAL_BALLS = 192;
+const DEFAULT_MAX_PHYSICAL_BALLS = MAX_VISIBLE_BALLS;
 const COLLISION_EPSILON = 1e-7;
 const FORTRESS_GRID = Object.freeze({
   columns: 30,
@@ -177,7 +179,7 @@ function createFortress(game, route) {
     }
   }
 
-  // Permanent walls make the corridor the only route to the breakable core.
+  // The corridor is the ordinary-ball route; gold can later open internal/bottom walls.
   for (let row = turnRow; row < rows; row += 1) {
     setFortressCell(game, row, entranceStart - 1, CELL_WALL);
   }
@@ -280,7 +282,9 @@ export function createGame(options = {}) {
     pickups: Object.fromEntries(Object.keys(POWERUPS).map(kind => [kind, 0])),
     effects: { paddleKind: null, paddleUntil: 0, hardUntil: 0 },
     dropCount: 0,
+    nextPowerupAt: POWERUP_RULES.firstAt,
     brickScore: 10,
+    // Legacy score thresholds are retained for queued v1 result validation only.
     multiplierEvery,
     nextMultiplierScore: Math.min(route?.firstBonus ?? multiplierEvery, multiplierEvery),
     ballRadius: 5,
@@ -321,15 +325,22 @@ export function movePaddle(game, x) {
   return game.paddle.x;
 }
 
-function pushMultiplierToken(game, x, y) {
-  const kinds = ['multiplier'];
-  if (game.dropCount % 2 === 1) kinds.push(BONUS_SEQUENCE[Math.floor(game.dropCount / 2) % BONUS_SEQUENCE.length]);
+export function getPowerupDropLimit(brickPoints, seconds) {
+  const earned = POWERUP_RULES.starters + Math.floor(Math.max(0, brickPoints) / POWERUP_RULES.brickPoints);
+  const paced = Math.max(0, 1 + Math.floor((seconds - POWERUP_RULES.firstAt) / POWERUP_RULES.interval));
+  return Math.min(earned, paced);
+}
+
+function updatePowerupSupply(game) {
+  if (game.status !== 'playing' || game.time < game.nextPowerupAt ||
+      game.dropCount >= getPowerupDropLimit(game.score, game.time)) return;
+  let kind = BONUS_SEQUENCE[game.dropCount % BONUS_SEQUENCE.length];
+  if (kind === 'multiplier' && game.visibleBallCount >= 6) kind = 'wide';
+  const x = clamp(game.paddle.x + (game.dropCount % 2 ? 26 : -26), 12, GAME_WIDTH - 12);
+  const y = game.grid.y + game.grid.rows * game.grid.cellHeight + 12;
+  game.tokens.push({ kind, value: 3, x, y, radius: 8, vy: game.tokenFallSpeed });
   game.dropCount += 1;
-  for (const kind of kinds) {
-    if (game.tokens.length >= 24) break;
-    game.tokens.push({ kind, value: 3, x: kind === 'multiplier' ? x : clamp(x + 28, 12, GAME_WIDTH - 12),
-      y, radius: 8, vy: game.tokenFallSpeed });
-  }
+  game.nextPowerupAt = game.time + POWERUP_RULES.interval;
 }
 
 function awardBrick(game, row, column) {
@@ -350,11 +361,6 @@ function awardBrick(game, row, column) {
     score: game.score,
   });
 
-  while (game.score >= game.nextMultiplierScore) {
-    pushMultiplierToken(game, x, y);
-    game.nextMultiplierScore += game.multiplierEvery;
-  }
-
   if (game.remainingBricks === 0) {
     game.tokens.length = 0;
     game.status = 'won';
@@ -365,7 +371,7 @@ function awardBrick(game, row, column) {
 function breakWall(game, row, column) {
   const { grid } = game;
   if (game.effects.hardUntil <= game.time || row === 0 || column === 0 ||
-      row === grid.rows - 1 || column === grid.columns - 1) return;
+      column === grid.columns - 1) return;
   game.bricks[row * grid.columns + column] = CELL_EMPTY;
   game.events.push({ type: 'wall-break', row, column,
     x: grid.x + (column + 0.5) * grid.cellWidth,
@@ -780,10 +786,7 @@ export function activateMultiplier(game) {
     return game.visibleBallCount;
   }
 
-  const nextVisibleCount =
-    game.visibleBallCount > Math.floor(MAX_VISIBLE_BALLS / 3)
-      ? MAX_VISIBLE_BALLS
-      : game.visibleBallCount * 3;
+  const nextVisibleCount = Math.min(MAX_VISIBLE_BALLS, game.visibleBallCount * 3);
   const targetPhysicalCount = Math.min(game.maxPhysicalBalls, nextVisibleCount);
   const sourceCount = game.balls.length;
 
@@ -838,5 +841,6 @@ export function stepGame(game, input) {
   expirePowerups(game);
   updateTokens(game);
   updateBalls(game);
+  updatePowerupSupply(game);
   return game;
 }

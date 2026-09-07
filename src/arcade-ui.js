@@ -1,4 +1,4 @@
-import { LEVELS } from './game-core.js?v=1.3.0';
+import { LEVELS } from './game-core.js?v=1.3.1';
 
 const number = value => new Intl.NumberFormat('zh-CN').format(value);
 const time = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;

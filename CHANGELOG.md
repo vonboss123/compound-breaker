@@ -1,5 +1,27 @@
 # 更新记录 · Changelog
 
+## v1.3.1 — 2026-09-07
+
+### 中文
+
+- 重做道具节奏：开局第 2 秒开始依次投放加长板、三倍球、金刚球、炸弹，约 3–5 秒就能接到首个道具，不再等到击碎大量砖块后才出现新效果。
+- 道具之间至少间隔 7 秒；四次开局补给后，每 60 砖块分赚取一次补给。炸弹不会连带瞬间刷出一大批道具，道具加分也不会循环制造补给。紫色缩短板更晚出现、占比更低。
+- 场内球数上限改为 12；至少有 6 球时，后续三倍球补给替换为加长板。减少后期满屏球自动清场，保留接球、选道具的操作空间。
+- 金刚球现在可以真正击破底部墙壁和内墙；左右边界、顶部边界和底部两个边角仍不可破坏。普通球不能穿墙，炸弹仍不炸墙。
+- 成绩接口同时接受新的补给规则和旧版待上传成绩，不重置已有榜单。更新离线缓存，原链接与主屏幕安装版均可更新。
+
+联网说明：这一版仍使用现有成绩服务；国内网络可达性的迁移需要新的托管资源和实测，不把本次玩法修复描述为已经解决国内上传问题。联网失败时继续本机暂存成绩，不影响游玩。
+
+### English
+
+- Reworked pickup pacing: supplies begin two active seconds into a stage, introducing wide paddle, ×3, hard ball and bomb in order. The first pickup can be caught in about 3–5 seconds without a long brick-grinding warm-up.
+- Drops are spaced at least seven seconds apart. After four starter supplies, every 60 brick points earns another drop. Bombs cannot trigger an instant pickup shower, and pickup points cannot create a supply loop. Harmful short-paddle items appear later and less often.
+- Capped visible and physical balls at 12. Scheduled ×3 supplies become wide paddles when at least six balls remain, keeping late-game catches and other effects meaningful.
+- Gold balls can now visibly break bottom walls as well as internal walls. Left/right boundaries, the top boundary and both bottom corners remain protected. Ordinary balls cannot pass through walls; bombs still do not destroy walls.
+- The score API accepts both the new supply rules and queued results from the previous version. Existing rankings are retained, and the offline cache updates through the original URL and installed PWA.
+
+Connectivity note: this release still uses the current score service. Moving to hosting reachable from mainland China requires approved resources and real network checks; this gameplay update does not claim that migration is complete. Failed uploads remain queued locally without blocking play.
+
 ## v1.3.0 — 2026-09-07
 
 ### 中文

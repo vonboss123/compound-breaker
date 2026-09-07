@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
     <meta name="description" content="一款原创的竖屏复利打砖块游戏。">
-    <meta name="application-version" content="1.3.0">
+    <meta name="application-version" content="1.3.1">
     <meta name="theme-color" content="#07080c">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" sizes="any" href="./assets/icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="./styles.css?v=1.3.0">
+    <link rel="stylesheet" href="./styles.css?v=1.3.1">
   </head>
   <body>
     <main class="app-shell">
@@ -43,7 +43,7 @@
           aria-describedby="level-picker-description"
         >
           <div class="level-picker-panel">
-            <p class="level-picker-kicker">COMPOUND BREAKER · v1.3.0</p>
+            <p class="level-picker-kicker">COMPOUND BREAKER · v1.3.1</p>
             <h2 id="level-picker-title">复利破阵</h2>
             <p id="level-picker-description">一颗球起步，一路破阵到底。</p>
             <p id="cover-greeting" class="menu-note"></p>
@@ -114,13 +114,13 @@
               <details class="menu-details">
                 <summary>道具与计分</summary>
                 <ul class="powerup-guide">
-                  <li><b style="color:#b8ef68">×3</b> 三倍球 · 球数翻三倍</li>
+                  <li><b style="color:#b8ef68">×3</b> 三倍球 · 球数翻三倍，最多 12 球</li>
                   <li><b style="color:#ff964c">✹</b> 爆破弹 · 炸开一片砖块</li>
                   <li><b style="color:#62d7ff">↔</b> 加长板 · 更好接球，12 秒</li>
                   <li><b style="color:#c291ff">↦↤</b> 缩短板 · 小心接球，12 秒</li>
-                  <li><b style="color:#ffdf57">◆</b> 金刚球 · 可击破内墙，8 秒</li>
+                  <li><b style="color:#ffdf57">◆</b> 金刚球 · 可击破底墙和内墙，8 秒</li>
                 </ul>
-                <p class="menu-note">金刚球击破的墙会出现真实缺口；场地外边框永不破坏。炸弹不炸墙。效果按游戏时间计时，暂停不消耗。</p>
+                <p class="menu-note">开局依次投放加长板、三倍球、金刚球和炸弹；后续击砖赚取补给，至少间隔 7 秒，球多时减少三倍球。金刚球可打开底墙；两侧与顶部边界永不破坏。炸弹不炸墙。暂停时不消耗道具时间。</p>
                 <p class="menu-note">每块砖 +10；好道具 +100，缩短板 −100。通关 +500，速度奖励为 1,800 − 用时秒数 ×10（最低 0）。单关总分最低 0；自由选关只计单关榜。</p>
               </details>
             </section>
@@ -179,7 +179,7 @@
 
         <header class="game-header">
           <div class="brand">
-            <p class="brand-kicker">COMPOUND <span class="app-version">v1.3.0</span></p>
+            <p class="brand-kicker">COMPOUND <span class="app-version">v1.3.1</span></p>
             <h1 id="game-title">Breaker</h1>
           </div>
 
@@ -244,6 +244,6 @@
     </main>
 
     <noscript>请开启 JavaScript 以运行 Compound Breaker。</noscript>
-    <script type="module" src="./src/main.js?v=1.3.0"></script>
+    <script type="module" src="./src/main.js?v=1.3.1"></script>
   </body>
 </html>

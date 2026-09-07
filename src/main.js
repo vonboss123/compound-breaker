@@ -1,21 +1,21 @@
-import { FIXED_STEP, LEVELS, POWERUPS, createGame, movePaddle, stepGame } from './game-core.js?v=1.3.0';
-import { createAudioController } from './audio.js?v=1.3.0';
-import { bootstrapPwa } from './pwa.js?v=1.3.0';
-import { captureRenderState, createRenderer } from './renderer.js?v=1.3.0';
-import { createRun, settleStage, advanceRun, resultPayload } from './progression.js?v=1.3.0';
-import { createPlayerStore } from './player-store.js?v=1.3.0';
-import { createLeaderboardClient } from './leaderboard-client.js?v=1.3.0';
-import { createArcadeUI } from './arcade-ui.js?v=1.3.0';
-import { LEADERBOARD_API } from './config.js?v=1.3.0';
+import { FIXED_STEP, LEVELS, POWERUPS, createGame, movePaddle, stepGame } from './game-core.js?v=1.3.1';
+import { createAudioController } from './audio.js?v=1.3.1';
+import { bootstrapPwa } from './pwa.js?v=1.3.1';
+import { captureRenderState, createRenderer } from './renderer.js?v=1.3.1';
+import { createRun, settleStage, advanceRun, resultPayload } from './progression.js?v=1.3.1';
+import { createPlayerStore } from './player-store.js?v=1.3.1';
+import { createLeaderboardClient } from './leaderboard-client.js?v=1.3.1';
+import { createArcadeUI } from './arcade-ui.js?v=1.3.1';
+import { LEADERBOARD_API } from './config.js?v=1.3.1';
 
 export const PRODUCTION_GAME_OPTIONS = Object.freeze({
   seed: 0xc0ffee,
-  maxPhysicalBalls: 192,
+  maxPhysicalBalls: 12,
   multiplierEvery: 120,
   levelId: 'level-1',
 });
 export const WAITING_STATUS_MESSAGE = '点按/拖动开始';
-const CANVAS_POINTER_STATUS_MESSAGE = '保持球在场内 · 绿色 ×3 会复利增殖';
+const CANVAS_POINTER_STATUS_MESSAGE = '接住彩色道具 · 最多 12 球 · 小心紫色缩短板';
 const KEYBOARD_PADDLE_SPEED = 330;
 const HUD_UPDATE_INTERVAL = 80;
 const CONTROLS_WORLD_TOP = 60;
